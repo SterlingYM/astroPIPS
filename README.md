@@ -7,8 +7,26 @@ sterling.astro@berkeley.edu
 -------------------------
 ![](sample_output.png)
 
+
 ---------------------
-# A note on Uncertainty
+## Dependency
+
+* numpy
+* scipy
+* matplotlib
+* getPeriod (included)
+
+
+---------------------
+## Usage (ver 0.1.0)
+
+Run ```$cd prototype``` and then ```$jupyter notebook```. Minimum working example is available at the end of ```full_auto_global_ver0.1.0.ipynb```.
+
+Sample data credit: UCB SNe Search Team (Filippenko Group)
+
+---------------------
+---------------------
+## A note on Uncertainty
 
 I think we have three uncertainties
 
@@ -23,7 +41,7 @@ __Will the size of mag error affect on any of these?__: Probably not. We are tak
 TODO: clean this up 
 
 ----------------------------------------------------
-# ```search_period()``` function
+## ```search_period()``` function
 
 __This function works with the assumption that the best-fit period has the lowest chi2.__
 
