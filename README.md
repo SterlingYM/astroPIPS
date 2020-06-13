@@ -4,3 +4,6 @@ This code is under development. For any requests/comments, please send an email 
 sterling.astro (at) berkeley.edu
 
 Thank you!
+
+-------------------------
+![](sample_output.png)
