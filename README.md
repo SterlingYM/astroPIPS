@@ -1,5 +1,5 @@
 # getPeriod2
-A more advanced version of getPeriod. Determines the period of short-period variable stars from sky-survey-type data (i.e. widely separated photometry). This code is under development.
+A more advanced version of getPeriod. Determines the period of short-period variable stars from sky-survey-type data (i.e. widely separated photometry). This code is under development and this documentation may be outdated.
 
 Yukei S. Murakami<br>
 sterling.astro@berkeley.edu
@@ -14,13 +14,28 @@ sterling.astro@berkeley.edu
 * numpy
 * scipy
 * matplotlib
-* getPeriod (included)
+* time
+* astropy
+* seaborn
 
 
 ---------------------
-## Usage (ver 0.1.0)
+## Usage (ver 0.2.0)
 
-Run ```$cd prototype``` and then ```$jupyter notebook```. Minimum working example is available at the end of ```full_auto_global_ver0.1.0.ipynb```.
+1. ```$mkdir gp2_workspace```
+2. ```$cd gp2_workspace```
+3. ```$git clone https://github.com/SterlingYM/getPeriod2```
+4. ```$jupyter notebook```
+5. In a jupyter cell, run following:
+```python
+import getPeriod2 as gp2
+data_V,_ = gp2.data_readin('getPeriod2/sample_data/000.dat')
+phot_obj = gp2.photdata(data_V)
+
+filtered_data = phot_obj.phot_err_cut()
+filtered_data.detect_period()
+print(filtered_data.period)
+```
 
 Sample data credit: UCB SNe Search Team (Filippenko Group)
 
@@ -77,39 +92,30 @@ This phase keeps the peak centered.
 fit again. replaces std with systematic if the fitting is not so good. (5/29/2020 update: now this fitting is done at 5-10$\sigma$ level from the statistical uncertainty, and usually the shape of chi2 potential is a beautiful quadratic, yielding a very small systematic uncertainty.
 
 
-<<<<<<< HEAD
-Thank you!
-
-
 ------------------------
 
 # getPeriod2 (tmp) manual
 
 Yukei S. Murakami
 sterling.astro@berkeley.edu
-last updated: June 19th, 2020
+last updated: June 27th, 2020
 
 ## introduction
-getPeriod2 (name TBD: Free Form Periodic Fitting (FFPF)?) is a python package that is developed for analysis of variable star photometry data. This algorithm re-constructs light curves of a pulsating variable stars through detection of periods. While there are many algorithms and implemented codes available, such as Lomb-Scargle periodogram in Astropy or Template Fourier Fitting (TFF) for known types of variable stars,  those algorithms may introduce biases to the results due to their function-form dependency, and several improvements were needed upon the analysis of datasets with certain characteristics with which these biases become significant. These characteristics include large separation of photometry data points between each observation window, small signal-to-noise ratio (SNR), small number of data points, and large intrinsic scatter of data points. We approached this problem by removing assumptions in terms of the periodic shape of light curve and instead by constructing the fit function as the code searches for the best-fit period. This free-form fit function is a Kth order Fourier series, which is constructed by an internal fitting to the folded light curve that is generated at each trial period. Unlike previous studies with a two-step analysis (Lomb-Scargle —> Fourier Fitting) which returns the best-fit period to a template (e.g. sinusoidal shape for Lomb-Scargle) and then fits the light curve to this possibly-biased data, this method returns the best-fit combination of both period and the light curve. Although the output from this algorithm can be interpreted as a ‘true’ set of data without biases, it should be always kept in mind that this algorithm employs one big assumption that, at the ‘true’ or ‘best-fit’ period, the disagreement (chi2) between  free-form fit function and data is minimized.
 
-Motivation: 
-The era of sky survey
+getPeriod2 (name TBD: Free Form Periodic Fitting (FFPF)?) is a python package that is developed for the analysis of variable star photometry data. This algorithm re-constructs light curves of pulsating variable stars through detection of periods. While there are many algorithms and implemented codes available, such as Lomb-Scargle periodogram in Astropy \uk{ref astropy} or Template Fourier Fitting (TFF) \uk{ref paper} for known types of variable stars,  those algorithms may introduce biases to the results due to their function-form dependency, and several improvements were needed upon the analysis of datasets with certain characteristics with which these biases become significant. These characteristics include large separation of photometry data points between each observation window, small signal-to-noise ratio (SNR), small number of data points, and large intrinsic scatter of data points.
 
-We found, however, several obstacles 
-overfitting (limited number of K)
-‘Mechanics of chi2 potential’ (lots of local minima)
-computing speed
+We approached this problem by removing assumptions in terms of the periodic shape of light curve and instead by constructing the fit function as the code searches for the best-fit period. This free-form fit function is a Kth order Fourier series, which is constructed by an internal fitting to the folded light curve that is generated at each trial period. Unlike previous studies with a two-step analysis which returns the best-fit period determined by a template (e.g. sinusoidal shape for Lomb-Scargle) and then fits the light curve to this possibly-biased data \uk{ref Gaia?}, this method returns the best-fit period and the light curve determined as a combination. Although the output from this algorithm can be interpreted as a ‘true’ set of data without biases, it should be always kept in mind that this algorithm employs one big assumption that, at the ‘true’ or ‘best-fit’ period, the disagreement (i.e. $\chi^2$ value) between  free-form fit function and data is minimized. \uk{this last sentence should be re-written in more positive way}
+
+The main motivation to develop this algorithm was to adopt existing technique and advance them to the modern form which is capable of processing datasets in the Sky-Survey era \uk{ref Gaia, TESS, WFIRST, etc}. Each year, it is getting less and less likely to have observations optimized and dedicated for the variable star analysis, while more numbers of datasets including variable star photometry are becoming available. This current situation requires that we instead provide upgrades to methods which can process less optimized data.
+
+During the implementation of this algorithm, we encountered several challenges. Although this algorithm is able to completely detect the period and reproduce the light curve of any shape in theory, the incompleteness of the phase coverage and poor quality of data (e.g. large error bars and large intrinsic scatter) determine the limitation of this algorithm. Particularly, limitations in number of Fourier terms K and the need for interpolation of folded data may introduce unwanted biases to the result, and the effects of those are discussed in the validation section.
+
+In addition to the limitation in data, there was another challenge to overcome the limitation of linear-regression tools that are utilized in our implementation: there was sometimes a large initial-guess dependency in the resulting period. This is, we believe, due to an incomplete optimization of linear regression tool. There are more free parameters available for the curve shape (i.e. Fourier parameters) than the parameter for the period (i.e. the period value itself), and this creates many local minima at the surface of $\chi^2$ potential. Best-fit period value may get trapped in the nearest local minimum instead of reaching to the 'true' lowest-$\chi^2$ point, and this occurs when the local minimum is too sharp and small compared to the global minimum.
+The linear regression detects the convergence at the local minimum before searching for a larger global minimum, which is the 'true' period value, and this effect is more obvious when the data sampling is less optimal for the variable star analysis (e.g. larger separation between observation, uneven coverage of the phase). This also makes it difficult to determine the uncertainty of resulting value, since the value may have a large offset from the 'true' period at the lowest $\chi^2$ value even though the uncertainty is extremely small (i.e. the size of small local minima) when we analyzed the posterior distribution with MCMC. We approached this issue by combining our initially described free-form fitting and more traditional Fourier fitting which does not include period as its free parameter. 
+
 
 ## algorithm
-
-## dependency
-
-## installation
-
-## usage
 
 ## application & example
 
 ## issues & todo
-=======
->>>>>>> 12f42b93b0dc67ca007d1ba7926e40f9dd579354
