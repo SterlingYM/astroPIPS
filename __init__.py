@@ -136,6 +136,8 @@ class photdata:
         test_p_list = np.linspace(test_p_min,test_p_max,test_num)
         pool = Pool()
         outputs = pool.map(self.test_global_potential_engine,test_p_list)
+        pool.close()
+        pool.join()
         p_list,chisq_list = np.array(outputs).T
         if not self.quiet:
             print('Done')
@@ -153,6 +155,8 @@ class photdata:
             print('computing chi2 potential...  ',end='')
         pool = Pool()
         chisq_list = pool.map(self.get_global_potential_engine,test_p_list)
+        pool.close()
+        pool.join()
         if not self.quiet:
             print('Done')
         return chisq_list
