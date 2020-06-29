@@ -399,11 +399,11 @@ class photdata:
                         test_p_max = period + scale*current_std
                         test_p_list = np.linspace(test_p_min,test_p_max,test_num)
                         chi2_potential = self.get_global_potential(test_p_list)
-                   period = test_p_list[chi2_potential==np.min(chi2_potential)][0]
-                   test_p_min = period - scale*current_std
-                   test_p_max = period + scale*current_std
-                   test_p_list = np.linspace(test_p_min,test_p_max,test_num)
-                   chi2_potential = self.get_global_potential(test_p_list)
+                    period = test_p_list[chi2_potential==np.min(chi2_potential)][0]
+                    test_p_min = period - scale*current_std
+                    test_p_max = period + scale*current_std
+                    test_p_list = np.linspace(test_p_min,test_p_max,test_num)
+                    chi2_potential = self.get_global_potential(test_p_list)
                 period = test_p_list[chi2_potential==np.min(chi2_potential)][0]
                 test_p_min = period - scale*current_std
                 test_p_max = period + scale*current_std        
