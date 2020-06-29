@@ -118,15 +118,16 @@ class photdata:
         p0=[self.A0,*ab]
         x_folded = self.x%period
         omega = 2*np.pi/period
-        popt,_ = curve_fit(lambda t,*params:self.fourier_composition(t,omega,*params),
-                           x_folded,self.y,p0=p0,sigma=self.yerr,maxfev=1000000)  
+        popt,_ = curve_fit(
+                lambda t,*params:self.fourier_composition(t,omega,*params),
+                x_folded,self.y,p0=p0,sigma=self.yerr,maxfev=10000)  
         return popt
         
     def test_global_potential_engine(self,p_test):
         # a helper function for multiprocessing in self.test_global_potential()
         ab = np.full(2*self.K,1)
         p0=[p_test,self.A0,*ab]
-        FF_popt,FF_pcov = curve_fit(self.fourier_composition_folded,self.x,self.y,p0=p0,sigma=self.yerr,maxfev=1000000)
+        FF_popt,FF_pcov = curve_fit(self.fourier_composition_folded,self.x,self.y,p0=p0,sigma=self.yerr,maxfev=10000)
         chisq, num_data = self.calc_chisq(FF_popt)
         return [FF_popt[0],chisq/num_data]
         
@@ -395,7 +396,11 @@ class photdata:
                         test_p_max = period + scale*current_std
                         test_p_list = np.linspace(test_p_min,test_p_max,test_num)
                         chi2_potential = self.get_global_potential(test_p_list)
-
+                   period = test_p_list[chi2_potential==np.min(chi2_potential)][0]
+                   test_p_min = period - scale*current_std
+                   test_p_max = period + scale*current_std
+                   test_p_list = np.linspace(test_p_min,test_p_max,test_num)
+                   chi2_potential = self.get_global_potential(test_p_list)
                 period = test_p_list[chi2_potential==np.min(chi2_potential)][0]
                 test_p_min = period - scale*current_std
                 test_p_max = period + scale*current_std        
