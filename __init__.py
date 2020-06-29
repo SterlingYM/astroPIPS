@@ -294,7 +294,7 @@ class photdata:
         previous_std = min(np.std(abs(test_p_list-p_list)),np.std(p_list))
         final_check_flag = False
         detection = False
-
+        previous_width = test_p_max - test_p_min
         # Phase I: best-fit-chi2-based
         # This method selects only one potential when there are multiple local minima.
         # Same result can be achieved by gradually narrowing the search window, but this method is faster
@@ -326,9 +326,12 @@ class photdata:
             current_std = min(np.std(abs(test_p_list-p_list)),np.std(p_list))
             print('old std = {}'.format(previous_std))
             print('new std = {}'.format(current_std))
-            if abs(1-current_std/previous_std) >= convergence_size_ratio:
-                print('std changed by {:.1f}%. Repeating the process with smaller search width...'.format(abs(1-current_std/previous_std)*100))
+### TODO: clean this up ###
+            current_width = test_p_max - test_p_min
+            if abs(1-current_std/previous_std) >= convergence_size_ratio or test_p_max - test_p_min < 0.8* previous_width:
+                print('std changed by {:.1f}% and width changed by {:.2f}%. Repeating the process with smaller search width...'.format(abs(1-current_std/previous_std)*100),abs(previous_width-current_width)/previous_width*100)
                 previous_std = current_std
+                previous_width = current_width
             else:
                 print('std changed by {:.1f}%, which is within the specified torelance.'.format(abs(1-current_std/previous_std)*100))
                 print('Finished phase I. Proceeding to phase II...')
