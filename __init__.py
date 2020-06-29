@@ -238,7 +238,7 @@ class photdata:
     ###########################    
     ### period detection
     ###########################  
-    def detect_period(self,max_iteration=100,test_num=100,threshold=0.1,initial_search_width=1e-5,convergence_size_ratio=0.03,title=''):
+    def detect_period(self,max_iteration=100,test_num=100,threshold=0.1,initial_search_width=1e-5,convergence_size_ratio=0.03,title='',show_plot=True,show_results=True):
         start_time = time.time()
         def quadratic(x,a,b,c):
             return a*(x-b)**2+c
@@ -262,21 +262,23 @@ class photdata:
             print('searching for the minimum around p={}...'.format(p))
             test_p_list = np.linspace(p-100*initial_search_width,p+100*initial_search_width,10*test_num)
             chi2_potential = self.get_global_potential(test_p_list)
-            plt.figure()
-            plt.scatter(test_p_list,chi2_potential,s=4)
-            plt.xlim(np.min(test_p_list),np.max(test_p_list))
-            plt.ylim(np.min(chi2_potential),np.max(chi2_potential))
-            plt.show()
-            while (chi2_potential[0]==np.min(chi2_potential) or chi2_potential[-1]==np.min(chi2_potential)):
-                print('Searching for the bottom of the potential...')
-                p = test_p_list[chi2_potential==np.min(chi2_potential)][0]
-                test_p_list = np.linspace(p-100*initial_search_width,p+100*initial_search_width,10*test_num)
-                chi2_potential = self.get_global_potential(test_p_list)
+            if show_plot:
                 plt.figure()
                 plt.scatter(test_p_list,chi2_potential,s=4)
                 plt.xlim(np.min(test_p_list),np.max(test_p_list))
                 plt.ylim(np.min(chi2_potential),np.max(chi2_potential))
                 plt.show()
+            while (chi2_potential[0]==np.min(chi2_potential) or chi2_potential[-1]==np.min(chi2_potential)):
+                print('Searching for the bottom of the potential...')
+                p = test_p_list[chi2_potential==np.min(chi2_potential)][0]
+                test_p_list = np.linspace(p-100*initial_search_width,p+100*initial_search_width,10*test_num)
+                chi2_potential = self.get_global_potential(test_p_list)
+                if show_plot:
+                    plt.figure()
+                    plt.scatter(test_p_list,chi2_potential,s=4)
+                    plt.xlim(np.min(test_p_list),np.max(test_p_list))
+                    plt.ylim(np.min(chi2_potential),np.max(chi2_potential))
+                    plt.show()
             potential_min_list.append(np.min(chi2_potential))
             potential_list.append(chi2_potential)
             test_p_list_list.append(test_p_list)
@@ -290,7 +292,8 @@ class photdata:
         test_p_max = p+initial_search_width
         test_p_list,p_list,chisq_list = self.test_global_potential(test_p_min,test_p_max,test_num)
         chi2_potential = self.get_global_potential(test_p_list)
-        self.potential_plot(test_p_list,p_list,chisq_list,chi2_potential)
+        if show_plot:
+            self.potential_plot(test_p_list,p_list,chisq_list,chi2_potential)
         previous_std = min(np.std(abs(test_p_list-p_list)),np.std(p_list))
         final_check_flag = False
         detection = False
@@ -320,7 +323,8 @@ class photdata:
             # do analysis
             test_p_list,p_list,chisq_list = self.test_global_potential(test_p_min,test_p_max,test_num)
             chi2_potential = self.get_global_potential(test_p_list)
-            self.potential_plot(test_p_list,p_list,chisq_list,chi2_potential)
+            if show_plot:
+                self.potential_plot(test_p_list,p_list,chisq_list,chi2_potential)
 
             # did std converge?
             current_std = min(np.std(abs(test_p_list-p_list)),np.std(p_list))
@@ -354,7 +358,8 @@ class photdata:
             # do analysis
             test_p_list,p_list,chisq_list = self.test_global_potential(test_p_min,test_p_max,test_num)
             chi2_potential = self.get_global_potential(test_p_list)
-            self.potential_plot(test_p_list,p_list,chisq_list,chi2_potential)
+            if show_plot:
+                self.potential_plot(test_p_list,p_list,chisq_list,chi2_potential)
 
             # did std converge?
             current_std = min(np.std(abs(test_p_list-p_list)),np.std(p_list))
