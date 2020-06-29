@@ -237,7 +237,7 @@ class photdata:
     ###########################    
     ### period detection
     ###########################  
-    def detect_period(self,max_iteration=100,test_num=100,threshold=0.1,initial_search_width=1e-4,convergence_size_ratio=0.03,title=''):
+    def detect_period(self,max_iteration=100,test_num=100,threshold=0.1,initial_search_width=1e-5,convergence_size_ratio=0.03,title=''):
         start_time = time.time()
         def quadratic(x,a,b,c):
             return a*(x-b)**2+c
@@ -259,7 +259,7 @@ class photdata:
         for f in freqs:
             p = 1/f[0]
             print('searching for the minimum around p={}...'.format(p))
-            test_p_list = np.linspace(p-10*initial_search_width,p+10*initial_search_width,10*test_num)
+            test_p_list = np.linspace(p-100*initial_search_width,p+100*initial_search_width,10*test_num)
             chi2_potential = self.get_global_potential(test_p_list)
             plt.figure()
             plt.scatter(test_p_list,chi2_potential,s=4)
@@ -269,7 +269,7 @@ class photdata:
             while (chi2_potential[0]==np.min(chi2_potential) or chi2_potential[-1]==np.min(chi2_potential)):
                 print('Searching for the bottom of the potential...')
                 p = test_p_list[chi2_potential==np.min(chi2_potential)][0]
-                test_p_list = np.linspace(p-10*initial_search_width,p+10*initial_search_width,10*test_num)
+                test_p_list = np.linspace(p-100*initial_search_width,p+100*initial_search_width,10*test_num)
                 chi2_potential = self.get_global_potential(test_p_list)
                 plt.figure()
                 plt.scatter(test_p_list,chi2_potential,s=4)
