@@ -329,7 +329,7 @@ class photdata:
 ### TODO: clean this up ###
             current_width = test_p_max - test_p_min
             if abs(1-current_std/previous_std) >= convergence_size_ratio or test_p_max - test_p_min < 0.8* previous_width:
-                print('std changed by {:.1f}% and width changed by {:.2f}%. Repeating the process with smaller search width...'.format(abs(1-current_std/previous_std)*100),abs(previous_width-current_width)/previous_width*100)
+                print('std changed by {:.1f}% and width changed by {:.1f}%. Repeating the process with smaller search width...'.format(abs(1-current_std/previous_std)*100,abs(1-current_width/previous_width)*100))
                 previous_std = current_std
                 previous_width = current_width
             else:
