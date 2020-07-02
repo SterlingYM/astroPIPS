@@ -233,7 +233,7 @@ class photdata:
         plt.ylabel('mag',fontsize=15)
         plt.title(title + '  P={:.9f}'.format(period))
         ax = plt.gca()
-        if intert_y:
+        if invert_y:
             ax.invert_yaxis()  
 
         
