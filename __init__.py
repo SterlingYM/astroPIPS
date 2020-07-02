@@ -9,7 +9,7 @@ warnings.simplefilter(action='ignore')
 import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
-import seaborn as sns
+#import seaborn as sns
 from multiprocessing import Pool
 import time
 #sns.set()
