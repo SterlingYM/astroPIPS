@@ -220,19 +220,21 @@ class photdata:
         plt.tight_layout()
         plt.show()    
     
-    def plot_lc_folded(self,period,title=''):
-        popt = self.get_best_fit_at_p(period)
-        x_th = np.linspace(0,2*period,1000)
-        y_th = self.fourier_composition(x_th,2*np.pi/period,*popt)
+    def plot_lc_folded(self,period,title='',fitting=True,invert_y=True):
         plt.figure(figsize=(8,4))
         plt.scatter(self.x%period,self.y,color='k',s=8)
         plt.scatter(self.x%period+period,self.y,color='k',s=8)
-        plt.plot(x_th,y_th)
+        if fitting:
+            popt = self.get_best_fit_at_p(period)
+            x_th = np.linspace(0,2*period,1000)
+            y_th = self.fourier_composition(x_th,2*np.pi/period,*popt)
+            plt.plot(x_th,y_th)
         plt.xlabel('time [day]',fontsize=15)
         plt.ylabel('mag',fontsize=15)
-#         plt.title(title + '  P={:.9f}({:})'.format(period,int(std/1e-9)))
+        plt.title(title + '  P={:.9f}({:})'.format(period,int(std/1e-9)))
         ax = plt.gca()
-        ax.invert_yaxis()  
+        if intert_y:
+            ax.invert_yaxis()  
 
         
     ###########################    
