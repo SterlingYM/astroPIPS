@@ -82,18 +82,18 @@ PhotData object (```getPeriod2.photdata```) is the main component of this pipeli
 ##### (iii) Data manipulation
 |name |description |required arguments |optional arguments|return|
 |:----|:-----------|:------------------|:-----------------|:-----|
-|```photdata.phot_err_cut(Nsigma=1)```|||```Nsigma```: |PhotData|
+|```photdata.phot_err_cut(Nsigma=1)```|Performs a cut based on the error value. The threshold is determined by either manually set ```photdata.err_cut_threshold``` or the argument ```Nsigma``` (only when threshold is ```None```). Returns another photdata. **This function does not overwrite the existing data in the object. Returned new object needs to be stored somewhere else.**||```Nsigma```: |PhotData|
 
 ##### (iv) Data analysis
 |name |description |required arguments |optional arguments|return|
 |:----|:-----------|:------------------|:-----------------|:-----|
-|```photdata.calc_chisq(FF_popt)```||||chi2,Ndata| 
-|```photdata.get_best_fit_at_p(period)```||||FF_popt|
-|```photdata.test_global_potential_engine(p_test)```||||\[period,chi2/Ndata\]|
-|```photdata.test_global_potential(test_p_min,test_p_max,test_num)```||||test_p_list, estimated_p_list, chi2_list|
-|```photdata.get_global_potential_engine(p_test)```||||chi2/Ndata|
-|```photdata.get_global_potential(test_p_list)```||||chi2_list|
-|```photdata.get_LS()```||||freq_list,power_list,\[f0,f1,f2,f3\]|
+|```photdata.calc_chisq(FF_popt)```|Calculates the chi square value based on given parameters. An internally called function for other functions below.|```FF_popt```||chi2,Ndata| 
+|```photdata.get_best_fit_at_p(period)```|Determines the best-fit set of Fourier parameters for the phase-folded data at given period.|```period```: float||popt|
+|```photdata.test_global_potential_engine(p_test)```|A helper function for the function below. Evaluates the chi2 value at single test period.|```p_test```: float||\[period,chi2/Ndata\]|
+|```photdata.test_global_potential(test_p_min,test_p_max,test_num)```|Tests the liear regression algorithm on the global chi2 potential and returns the best-fit period list for each 'test' (=initial guess) period value.|```test_p_min```: minimum test period (float), ```test_p_max```: maximum test period (float), ```test_num```: number of test periods (int)||test_p_list, estimated_p_list, chi2_list|
+|```photdata.get_global_potential_engine(p_test)```|A helper function for the function below. Evaluates the chi2 value at a single fixed period.|```p_test```: float||chi2/Ndata|
+|```photdata.get_global_potential(test_p_list)```|Obtains the list of chi2 values at each fixed period. Period is not a free parameter unlike ```test_global_potential()```.|```test_p_list```: array||chi2_list|
+|```photdata.get_LS()```|Calls astropy's Lomb-Scargle function to obtain the initial guess. |||freq_list,power_list,\[f0,f1,f2,f3\]|
 
 ##### (v) Plotting
 |name |description |required arguments |optional arguments|return|
