@@ -1,5 +1,5 @@
 # getPeriod2
-A more advanced version of getPeriod. Determines the period of short-period variable stars from sky-survey-type data (i.e. widely separated photometry). This code is under development and this documentation may be outdated.
+A more advanced version of getPeriod, which determines the period of short-period variable stars from sky-survey-type data (i.e. widely separated photometry). This code is under development and this documentation may be outdated.
 
 Yukei S. Murakami<br>
 sterling.astro@berkeley.edu
@@ -40,6 +40,46 @@ print(filtered_data.period)
 Sample data credit: UCB SNe Search Team (Filippenko Group)
 
 ---------------------
+## object ```photdata```
+
+PhotData object (```getPeriod2.photdata```) is the main component of this pipeline and contains photometry data. This PhotData is consisted of the data itself (time, magnitude/flux, and mag/flux error), parameters for various operations, and method functions to analyze the data. Having correctly set parameters is essential to obtain reliable results from this pipeline, and understanding the correct usage of method functions will allow an easier and faster analysis.
+
+### photdata: data
+|name |description |unit |default|
+|:----|:-----------|:----|:------|
+|```photdata.x```   | An array of time values |days|```data[0]```|
+|```photdata.y```   | An array of magnitude or flux values |mag (or flux)|```data[1]```|
+|```photdata.yerr```| An array of error for ```photdata.y``` values. This error is in the absolute value (e.g. ```photdata.yerr[0]=0.3``` when ```photdata.y[0]=16``` means the magnitude for the first datapoint is 16+-0.3.)| mag (or flux) | ```data[3]```|
+|```photdata.t```   | Identical to ```photdata.x``` by default. The values are only copied to each other when the object is initialized, and the arrays are not identical to each other anymore when one of them is manually edited.|days|```photdata.x```|
+|```photdata.mag``` | Identical to ```photdata.y```. Similar to ```photdata.t```. |mag (or flux)|```photdata.y```|
+|```photdata.mag_err```   | Identical to ```photdata.yerr```. Similar to ```photdata.t```. |mag(flux)|```photdata.yerr```|
+|```photdata.period```    | Period value determined by the pipeline. Initially ```None```, and the value appears once ```photdata.detect_period()``` is executed. | days | ```None```|
+|```photdata.period_err```| Uncertainty for the period value | days | ```None```|
+|```photdata.amplitude``` | Amplitude of the best-fit lightcurve (not the data itself).|mag (or flux) |```None```|
+
+### photdata: parameters
+|name |description |unit |default|
+|:----|:-----------|:----|:------|
+|```photdata.A0```| Initial guess value for the mean magnitude. ```photdata.A0 = np.mean(photdata.y)``` is recommended when manually setting.| mag (or flux) | 15|
+|```photdata.K``` | Number of Fourier terms used to obtain best-fit lightcurve for phase-folded data. ||5|
+|```photdata.err_cut_threshold```||mag (or flux)|```None```|
+|```photdata.quiet```|||```True```|
+|```photdata.LS_min_f```|||0.5|
+|```photdata.LS_max_f```|||10|
+
+### photdata: functions
+|name |description |required arguments |optional arguments|return|
+|:----|:-----------|:------------------|:-----------------|:-----|
+|```photdata(data)``` (```photdata.__init__()```)||```data```|||
+|```photdata.fourier_composition(x,omega,A0,*ab_list)```||||array(y value)|
+|```photdata.fourier_composition_folded(x,period,A0,*ab_list)```||||array(y value)|
+|```photdata.phot_err_cut(Nsigma=1)```|||```Nsigma```: |PhotData|
+|```photdata.calc_chisq(FF_popt)```||||chi2,Ndata| 
+|```photdata.get_best_fit_at_p(period)```||||FF_popt|
+|```photdata.test_global_potential_engine(p_test)```||||\[period,chi2/Ndata\]|
+
+  * 
+
 ---------------------
 ## A note on Uncertainty
 
