@@ -263,17 +263,20 @@ class photdata:
     ###########################    
     ### period detection
     ###########################  
-    def detect_period(self,max_iteration=100,test_num=100,threshold=0.1,initial_search_width=1e-5,convergence_size_ratio=0.03,title='',show_plot=True,show_results=True):
+    def detect_period(self,max_iteration=100,test_num=100,threshold=0.1,initial_search_width=1e-5,convergence_size_ratio=0.03,title='',show_plot=True,show_results=True,period_guess=None):
         start_time = time.time()
         def quadratic(x,a,b,c):
             return a*(x-b)**2+c
         
-        # initial analysis with Lomb-Scargle
-        print('Starting the process with Lomb-Scargle periodogram...')
-        try:
-            freqs = np.array(self.get_LS()[2])
-        except:
-            return 0,0,0
+        if period_guess == None:
+            # initial analysis with Lomb-Scargle
+            print('Starting the process with Lomb-Scargle periodogram...')
+            try:
+                freqs = np.array(self.get_LS()[2])
+            except:
+                return 0,0,0
+        else:
+            freqs = [[1/period_guess]]
 
         print('Continuing the process with chi2 potential analysis...')
         # Phase zero: potential lock
