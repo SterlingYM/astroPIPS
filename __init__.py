@@ -53,23 +53,25 @@ class photdata:
         self.A0 = 15 # initial guess for mean mag (zeroth order in Fourier series)
         self.K=5
         self.err_cut_threshold = None
+        self.max_mag_threshold = None
+        self.min_mag_threshold = None
         self.quiet = True
         self.LS_min_f = 0.5
         self.LS_max_f = 10 
         
     ###########################
-    ### Access Functions 
+    ### Access Functions  (deprecated: will be removed in the future version)
     ###########################
-    def set_fourier_terms(self,K):
-        # access function for K
-        self.K=K
-        
-    def set_phot_err_cut_threshold(self,threshold):
-        # access function for self.err_cut_threshold
-        self.err_cut_threshold = threshold
-        
-    def set_quietMode(isQuiet):
-        self.quiet=isQuiet
+    #def set_fourier_terms(self,K):
+    #    # access function for K
+    #    self.K=K
+    #    
+    #def set_phot_err_cut_threshold(self,threshold):
+    #    # access function for self.err_cut_threshold
+    #    self.err_cut_threshold = threshold
+    #    
+    #def set_quietMode(isQuiet):
+    #    self.quiet=isQuiet
         
     ###########################    
     ### Fourier Functions 
@@ -101,7 +103,28 @@ class photdata:
         y1 = self.y[self.yerr<self.err_cut_threshold]
         yerr1 = self.yerr[self.yerr<self.err_cut_threshold]
         return photdata([x1,y1,yerr1])
-    
+   
+    def phot_mag_cut(self,min_mag=None,max_mag=None):
+        # cuts data with magnitude outside of the threshold
+        if min_mag != None:
+            self.min_mag_threshold = min_mag
+        if max_mag != None:
+            self.max_mag_threshold = max_mag
+        if self.min_mag_threshold != None:
+            x1 = self.x[self.y>self.min_mag_threshold]
+            y1 = self.y[self.y>self.min_mag_threshold]
+            yerr1 = self.yerr[self.y>self.min_mag_threshold]
+        else:
+            x1,y1,yerr1 = self.x, self.y, self.yerr
+        if self.max_mag_threshold != None:
+            x2 = x1[y1<self.max_mag_threshold]
+            y2 = y1[y1<self.max_mag_threshold]
+            yerr2 = yerr1[y1<self.max_mag_threshold]
+        else:
+            x2,y2,yerr2 = x1,y1,yerr1
+        return photdata([x2,y2,yerr2])
+
+            
     
     ###########################    
     ### Data Analysis Functions
