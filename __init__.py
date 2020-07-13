@@ -150,7 +150,7 @@ class photdata:
         # a helper function for multiprocessing in self.test_global_potential()
         ab = np.full(2*self.K,1)
         p0=[p_test,self.A0,*ab]
-        FF_popt,FF_pcov = curve_fit(self.fourier_composition_folded,self.x,self.y,p0=p0,sigma=self.yerr,maxfev=10000)
+        FF_popt,FF_pcov = curve_fit(self.fourier_composition_folded,self.x,self.y,p0=p0,sigma=self.yerr,maxfev=1000000)
         chisq, num_data = self.calc_chisq(FF_popt)
         return [FF_popt[0],chisq/num_data]
         
