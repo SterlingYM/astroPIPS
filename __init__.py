@@ -263,7 +263,7 @@ class photdata:
     ###########################    
     ### period detection
     ###########################  
-    def detect_period(self,max_iteration=100,test_num=100,threshold=0.1,initial_search_width=1e-5,convergence_size_ratio=0.03,title='',show_plot=True,show_results=True,period_guess=None):
+    def detect_period(self,max_iteration=100,test_num=100,threshold=0.1,initial_search_width=1e-6,convergence_size_ratio=0.03,title='',show_plot=True,show_results=True,period_guess=None):
         start_time = time.time()
         def quadratic(x,a,b,c):
             return a*(x-b)**2+c
@@ -288,7 +288,7 @@ class photdata:
         for f in freqs:
             p = 1/f[0]
             print('searching for the minimum around p={}...'.format(p))
-            test_p_list = np.linspace(p-100*initial_search_width,p+100*initial_search_width,10*test_num)
+            test_p_list = np.linspace(p-1000*initial_search_width,p+1000*initial_search_width,10*test_num)
             chi2_potential = self.get_global_potential(test_p_list)
             if show_plot:
                 plt.figure()
@@ -299,7 +299,7 @@ class photdata:
             while (chi2_potential[0]==np.min(chi2_potential) or chi2_potential[-1]==np.min(chi2_potential)):
                 print('Searching for the bottom of the potential...')
                 p = test_p_list[chi2_potential==np.min(chi2_potential)][0]
-                test_p_list = np.linspace(p-100*initial_search_width,p+100*initial_search_width,10*test_num)
+                test_p_list = np.linspace(p-1000*initial_search_width,p+1000*initial_search_width,10*test_num)
                 chi2_potential = self.get_global_potential(test_p_list)
                 if show_plot:
                     plt.figure()
@@ -315,7 +315,7 @@ class photdata:
         potential_list = np.array(potential_list)
         p = test_p_list_list[np.argmin(potential_min_list)][potential_list[np.argmin(potential_min_list)]==potential_min_list[np.argmin(potential_min_list)]][0]
             
-        print('Potential lock: success')
+        print('Potential lock: success (p={:.9f})'.format(p))
         test_p_min = p-initial_search_width
         test_p_max = p+initial_search_width
         test_p_list,p_list,chisq_list = self.test_global_potential(test_p_min,test_p_max,test_num)
