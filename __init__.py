@@ -706,7 +706,6 @@ class photdata:
         else:
             phot_obj.detect_period_quick(max_width=1e-7,show_plot=False,initial_search_width=initial_search_width)
             
-        print('p1/pf = {:.3f}'.format(period/popt[0]))
         if period < 0.5:
             p1 = period
             p2 = phot_obj.period
@@ -715,4 +714,5 @@ class photdata:
             p2 = period
         self.p1=p1
         self.p2=p2
+        print('p1/pf = {:.3f}'.format(p1/p2))
         return p1,p2
