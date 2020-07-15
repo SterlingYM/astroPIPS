@@ -341,6 +341,7 @@ class photdata:
         ax4.set_ylim(ylim)
         ax4.set_xlabel('phase')
         plt.show()
+        return x,A0,first_component,second_component,yerr
         
     ###########################    
     ### period detection
