@@ -48,6 +48,8 @@ class photdata:
         self.period = None
         self.period_err = None
         self.amplitude = None
+        self.p1 = None
+        self.p2 = None
 
         # options
         self.A0 = 15 # initial guess for mean mag (zeroth order in Fourier series)
@@ -59,19 +61,6 @@ class photdata:
         self.LS_min_f = 0.5
         self.LS_max_f = 10 
         
-    ###########################
-    ### Access Functions  (deprecated: will be removed in the future version)
-    ###########################
-    #def set_fourier_terms(self,K):
-    #    # access function for K
-    #    self.K=K
-    #    
-    #def set_phot_err_cut_threshold(self,threshold):
-    #    # access function for self.err_cut_threshold
-    #    self.err_cut_threshold = threshold
-    #    
-    #def set_quietMode(isQuiet):
-    #    self.quiet=isQuiet
         
     ###########################    
     ### Fourier Functions 
@@ -91,7 +80,34 @@ class photdata:
         y_fit = self.fourier_composition(t,omega,A0,*ab_list)
         return y_fit
 
-    
+    def twoperiod_model_nonsinusoidal(self,x,p1,p2,A0,A1,A2,phi1,phi2):
+        popt_RRab_template = [-0.59720581,  0.2698969 , -0.20855331,  0.07600764, -0.00697336, \
+                              -0.41523584,  0.11322467, -0.13080449,  0.12862137, -0.05014972]
+        y = A0
+        for i in range(5):
+            k  = i+1
+            y += A2*(popt_RRab_template[i] * np.sin(k*2*np.pi/p2*x - phi2)+\
+                     popt_RRab_template[i+5]*np.cos(k*2*np.pi/p2*x - phi2))
+        y += A1*np.sin(2*np.pi/p1*x - phi1)
+        return y    
+
+    def twoperiod_model_freeform(self,x,p1,p2,A0,*popts):
+        popt1 = popts[:10]
+        popt2 = popts[10:]
+        y = A0
+        for i in range(5):
+            k  = i+1
+            y += popt1[i] * np.sin(k*2*np.pi/p1*x)+popt1[i+5]*np.cos(k*2*np.pi/p1*x)
+            y += popt2[i] * np.sin(k*2*np.pi/p2*x)+popt2[i+5]*np.cos(k*2*np.pi/p2*x)
+        return y
+
+    def simple_fourier(self,x,p,A0,*popt):
+        y = A0
+        for i in range(5):
+            k = i+1
+            y += popt[i]*np.sin(k*2*np.pi/p*x) + popt[i+5]*np.cos(k*2*np.pi/p*x)
+        return y
+
     ###########################    
     ### Data Manipulate Functions
     ###########################    
@@ -194,6 +210,23 @@ class photdata:
         f3 = freq[power==p_sorted[-4]]    
         return freq,power,[f0,f1,f2,f3]        
 
+    def fit_doublemode_initial(self,period_manual=None,p_guess=None):
+        # biased fitting (sinusoidal + template)
+        period   = self.period
+        if p_guess==None and period<0.5:
+            p_guess = 1/0.74*period
+        elif p_guess==None and period>0.5:
+            p_guess = 0.74*period
+        p0 = [p_guess,15,1,1,0,0]
+        
+        if period>0.5: #rrab
+            popt,pcov = curve_fit(lambda x,*params: self.twoperiod_model_nonsinusoidal(x,params[0],period,*params[1:]),
+                                  self.x,self.y,p0,maxfev=10000)        
+        else:
+            popt,pcov = curve_fit(lambda x,*params: self.twoperiod_model_nonsinusoidal(x,period,*params),
+                                  self.x,self.y,p0,maxfev=10000)
+        return popt,period
+
 
         
     ###########################    
@@ -258,6 +291,54 @@ class photdata:
         ax = plt.gca()
         if invert_y:
             ax.invert_yaxis()  
+
+    def plot_lc_doublemode(self,p1=None,p2=None):
+        if not (p1 != None and p2 != None):
+            p1 = self.p1
+            p2 = self.p2
+        x,y,yerr = self.x, self.y, self.yerr
+        p0 = [15,*np.zeros(20)]
+        popt,pcov = curve_fit(lambda x,*params: self.twoperiod_model_freeform(x,p1,p2,*params),
+                              x,y,p0,maxfev=10000)
+        A0,*popt_tmp = popt
+        popt1 = popt_tmp[:10]
+        popt2 = popt_tmp[10:]
+        first  = self.simple_fourier(x,p1,A0,*popt1) - A0
+    
+        phot_obj = photdata([x,y-first,yerr])
+        second_component = phot_obj.fourier_composition(x,2*np.pi/p2,*phot_obj.get_best_fit_at_p(p2))
+        first_component = y - second_component
+        phot_obj2 = photdata([x,first_component,yerr])
+        first_tmp = phot_obj2.fourier_composition(x,2*np.pi/p1,*phot_obj2.get_best_fit_at_p(p1))
+        second_component = y - first_tmp - A0
+    
+        fig,(ax1,ax2,ax3,ax4) = plt.subplots(1,4,figsize=(20,4))
+    
+        ax1.scatter(x%p1/p1,y,s=5,c='k')
+        ax1.scatter(x%p1/p1+1,y,s=5,c='k')
+        ax1.set_xlabel('phase')
+        ax1.set_title('original data folded at p1')
+        ax1.invert_yaxis()
+        ylim = ax1.get_ylim()
+    
+        ax2.scatter(x%p2/p2,y,s=5,c='k')
+        ax2.scatter(x%p2/p2+1,y,s=5,c='k')
+        ax2.set_xlabel('phase')
+        ax2.set_title('original data folded at pf')
+        ax2.invert_yaxis()
+        ax2.set_ylim(ylim)
+    
+        ax3.scatter(x%p1/p1,A0+first_component,s=5,c='k')
+        ax3.scatter(x%p1/p1+1,A0+first_component,s=5,c='k')
+        ax3.set_title('first overtone: p1={:.7f}'.format(p1),fontsize=15)
+        ax3.set_ylim(ylim)
+        ax3.set_xlabel('phase')
+    
+        ax4.scatter(x%p2/p2,A0+second_component,s=5,c='k')
+        ax4.scatter(x%p2/p2+1,A0+second_component,s=5,c='k')
+        ax4.set_title('fundamental mode: pf={:.7f}'.format(p2),fontsize=15)
+        ax4.set_ylim(ylim)
+        ax4.set_xlabel('phase')
 
         
     ###########################    
@@ -600,3 +681,38 @@ class photdata:
         self.amplitude  = amplitude
         print('----- End of period detection. Execution time: {:.3f} seconds -----'.format(time.time()-start_time))
         return period,std,amplitude
+
+    def detect_secondperiod(self,initial_search_width=1e-5,informed=True,p1_manual=None,p2_manual=None):
+        popt,period = self.fit_doublemode_initial(period_manual=p1_manual)
+        if period < 0.5:
+            p2,A0,A1,A2,phi1,phi2 = popt
+            p1 = period
+            period_to_search = p2
+        else:
+            p1,A0,A1,A2,phi1,phi2 = popt
+            p2 = period        
+            period_to_search = p1
+        x = self.x
+        y = self.y
+        yerr = self.yerr
+        first_component = A1*np.sin(2*np.pi/p1*x - phi1)
+    
+        # 1st fitting
+        phot_obj = photdata([x,y-first_component,yerr])
+        if p2_manual != None:
+            p2 = p2_manual
+        if informed == True:
+            phot_obj.detect_period_quick(max_width=1e-7,show_plot=False,period_guess=period_to_search,initial_search_width=initial_search_width)
+        else:
+            phot_obj.detect_period_quick(max_width=1e-7,show_plot=False,initial_search_width=initial_search_width)
+            
+        print('p1/pf = {:.3f}'.format(period/popt[0]))
+        if period < 0.5:
+            p1 = period
+            p2 = phot_obj.period
+        else:
+            p1 = phot_obj.period
+            p2 = period
+        self.p1=p1
+        self.p2=p2
+        return p1,p2
