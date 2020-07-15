@@ -50,6 +50,7 @@ class photdata:
         self.amplitude = None
         self.p1 = None
         self.p2 = None
+        self.label = ''
 
         # options
         self.A0 = 15 # initial guess for mean mag (zeroth order in Fourier series)
@@ -317,14 +318,14 @@ class photdata:
         ax1.scatter(x%p1/p1,y,s=5,c='k')
         ax1.scatter(x%p1/p1+1,y,s=5,c='k')
         ax1.set_xlabel('phase')
-        ax1.set_title('original data folded at p1',fontsize=15)
+        ax1.set_title(self.label+' data folded at p1',fontsize=15)
         ax1.invert_yaxis()
         ylim = ax1.get_ylim()
     
         ax2.scatter(x%p2/p2,y,s=5,c='k')
         ax2.scatter(x%p2/p2+1,y,s=5,c='k')
         ax2.set_xlabel('phase')
-        ax2.set_title('original data folded at pf',fontsize=15)
+        ax2.set_title(self.label+' data folded at pf',fontsize=15)
         ax2.invert_yaxis()
         ax2.set_ylim(ylim)
     
