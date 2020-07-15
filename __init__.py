@@ -317,14 +317,14 @@ class photdata:
         ax1.scatter(x%p1/p1,y,s=5,c='k')
         ax1.scatter(x%p1/p1+1,y,s=5,c='k')
         ax1.set_xlabel('phase')
-        ax1.set_title('original data folded at p1')
+        ax1.set_title('original data folded at p1',fontsize=15)
         ax1.invert_yaxis()
         ylim = ax1.get_ylim()
     
         ax2.scatter(x%p2/p2,y,s=5,c='k')
         ax2.scatter(x%p2/p2+1,y,s=5,c='k')
         ax2.set_xlabel('phase')
-        ax2.set_title('original data folded at pf')
+        ax2.set_title('original data folded at pf',fontsize=15)
         ax2.invert_yaxis()
         ax2.set_ylim(ylim)
     
@@ -714,5 +714,7 @@ class photdata:
             p2 = period
         self.p1=p1
         self.p2=p2
+        print('p1 = {:.7f}'.format(p1))
+        print('pf = {:.7f}'.format(p2))
         print('p1/pf = {:.3f}'.format(p1/p2))
         return p1,p2
