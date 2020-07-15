@@ -340,7 +340,7 @@ class photdata:
         ax4.set_title('fundamental mode: pf={:.7f}'.format(p2),fontsize=15)
         ax4.set_ylim(ylim)
         ax4.set_xlabel('phase')
-
+        plt.show()
         
     ###########################    
     ### period detection
