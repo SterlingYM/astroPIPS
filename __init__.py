@@ -263,6 +263,119 @@ class photdata:
     ###########################    
     ### period detection
     ###########################  
+    def detect_period_quick(self,max_width=1e-7,max_iteration=100,test_num=100,threshold=0.1,initial_search_width=1e-6,convergence_size_ratio=0.03,title='',show_plot=True,show_results=True,period_guess=None):
+        start_time = time.time()
+        def quadratic(x,a,b,c):
+            return a*(x-b)**2+c
+        
+        if period_guess == None:
+            # initial analysis with Lomb-Scargle
+            print('Starting the process with Lomb-Scargle periodogram...')
+            try:
+                freqs = np.array(self.get_LS()[2])
+            except:
+                return 0,0,0
+        else:
+            freqs = [[1/period_guess]]
+
+        print('Continuing the process with chi2 potential analysis...')
+        potential_min_list = []
+        potential_list = []
+        test_p_list_list = []
+        isInitial=True
+        for f in freqs:
+            p = 1/f[0]
+            if not isInitial:
+                if (p>test_p_list[0]) and (p<test_p_list[-1]):
+                    print('searching for the minimum around p={}... skipped (overlap)'.format(p))
+                    continue
+            else:
+                isInitial=False
+            print('searching for the minimum around p={}...'.format(p))
+            test_p_list = np.linspace(p-1000*initial_search_width,p+1000*initial_search_width,10*test_num)
+            chi2_potential = self.get_global_potential(test_p_list)
+            if show_plot:
+                plt.figure()
+                plt.scatter(test_p_list,chi2_potential,s=4)
+                plt.xlim(np.min(test_p_list),np.max(test_p_list))
+                plt.ylim(np.min(chi2_potential),np.max(chi2_potential))
+                plt.show()
+            while (chi2_potential[0]==np.min(chi2_potential) or chi2_potential[-1]==np.min(chi2_potential)):
+                print('Searching for the bottom of the potential...')
+                p = test_p_list[chi2_potential==np.min(chi2_potential)][0]
+                test_p_list = np.linspace(p-1000*initial_search_width,p+1000*initial_search_width,10*test_num)
+                chi2_potential = self.get_global_potential(test_p_list)
+                if show_plot:
+                    plt.figure()
+                    plt.scatter(test_p_list,chi2_potential,s=4)
+                    plt.xlim(np.min(test_p_list),np.max(test_p_list))
+                    plt.ylim(np.min(chi2_potential),np.max(chi2_potential))
+                    plt.show()
+            potential_min_list.append(np.min(chi2_potential))
+            potential_list.append(chi2_potential)
+            test_p_list_list.append(test_p_list)
+        test_p_list_list = np.array(test_p_list_list)
+        potential_min_list = np.array(potential_min_list)
+        potential_list = np.array(potential_list)
+        p = test_p_list_list[np.argmin(potential_min_list)][potential_list[np.argmin(potential_min_list)]==potential_min_list[np.argmin(potential_min_list)]][0]
+            
+        print('Potential lock: success (p={:.9f})'.format(p))
+        search_width = initial_search_width
+        while (search_width>max_width):
+            print('Searching for the best-fit period: width={:.2e}'.format(search_width))
+            test_p_list = np.linspace(p-search_width,p+search_width,test_num)
+            chi2_potential = self.get_global_potential(test_p_list)
+            p = test_p_list[chi2_potential==np.min(chi2_potential)][0]
+            search_width *= 0.5
+        
+
+        p0 = [np.std(chi2_potential)/search_width**2,test_p_list[chi2_potential==np.min(chi2_potential)][0],np.min(chi2_potential)]
+        popt,pcov = curve_fit(quadratic,test_p_list,chi2_potential,p0=p0)
+        period = popt[1]
+        print('Period estimation is complete. Performing final analysis:')
+
+        test_p_list = np.linspace(period-search_width,period+search_width,test_num)
+        chi2_potential = self.get_global_potential(test_p_list)
+        p0 = [np.std(chi2_potential)/search_width**2,test_p_list[chi2_potential==np.min(chi2_potential)][0],np.min(chi2_potential)]
+        popt,pcov = curve_fit(quadratic,test_p_list,chi2_potential,p0=p0)
+        period = popt[1]
+        print('')
+        print('************************')
+        print('* Period = {:.9f} *'.format(period))
+        print('* error  = undefined (quick mode)')
+        print('************************')
+
+        # summary
+        fig,(ax1,ax2)=plt.subplots(1,2,figsize=(16,5))
+
+        # potential plot
+        ax1.scatter(test_p_list,chi2_potential,s=8,c='k')
+        ax1.plot(test_p_list,quadratic(test_p_list,*popt),color='orange',label='quadratic fit')
+        ax1.axvline(period,color='green',label='period')
+        ax1.set_xlim(np.min(test_p_list)-0.1*np.std(test_p_list),np.max(test_p_list)+0.1*np.std(test_p_list))
+        ax1.set_ylim(np.min(chi2_potential)-0.1*np.std(chi2_potential),np.max(chi2_potential)+0.1*np.std(chi2_potential))
+        ax1.legend()
+
+        # generate best-fit light curve
+        omega = 2*np.pi/period
+        popt = self.get_best_fit_at_p(period)
+        x_th = np.linspace(0,2*period,1000)
+        y_th = self.fourier_composition(x_th,2*np.pi/period,*popt)
+        ax2.scatter(self.x%period,self.y,color='k',s=8)
+        ax2.scatter(self.x%period+period,self.y,color='k',s=8)
+        ax2.plot(x_th,y_th)
+        ax2.set_xlabel('time [day]',fontsize=15)
+        ax2.set_ylabel('mag',fontsize=15)
+        ax2.set_title(title + '  P={:.9f}'.format(period))
+        ax2.invert_yaxis()        
+        amplitude = np.max(y_th)-np.min(y_th)
+        plt.show()
+        self.period     = period
+        self.period_err = None
+        self.amplitude  = amplitude
+        print('----- End of period detection. Execution time: {:.3f} seconds -----'.format(time.time()-start_time))
+        return period,amplitude    
+    
     def detect_period(self,max_iteration=100,test_num=100,threshold=0.1,initial_search_width=1e-6,convergence_size_ratio=0.03,title='',show_plot=True,show_results=True,period_guess=None):
         start_time = time.time()
         def quadratic(x,a,b,c):
