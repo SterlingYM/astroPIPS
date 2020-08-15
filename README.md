@@ -1,5 +1,5 @@
-# Period-determination and Identification Pipeline Suite
-A more advanced version of getPeriod, which determines the period of short-period variable stars from sky-survey-type data (i.e. widely separated photometry). This code is under development and this documentation may be outdated.
+# Period-determination and Identification Pipeline Suite (PIPS)
+A more advanced version of getPeriod, which determines the period of short-period variable stars from photometry data. This code is under development and this documentation may be outdated.
 
 Yukei S. Murakami<br>
 sterling.astro@berkeley.edu
