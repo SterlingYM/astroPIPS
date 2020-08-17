@@ -1,4 +1,4 @@
-### getPeriod2 (official name TBD) ###
+### Period Determination and Identification Pipeline Suite (PIPS) ###
 ### this is a tool for variable star analysis and is under development.
 ### Yukei S. Murakami, UC Berkeley 2020
 ### sterling.astro@berkeley.edu
@@ -8,16 +8,18 @@ warnings.simplefilter(action='ignore')
 
 import numpy as np
 from scipy.optimize import curve_fit
+from astropy.timeseries import LombScargle
 import matplotlib.pyplot as plt
-#import seaborn as sns
 from multiprocessing import Pool
 import time
+
+#import seaborn as sns
 #sns.set()
 
-from astropy.timeseries import LombScargle
 
 
-def data_readin(path):
+def data_readin_LPP(path,filter='V'):
+    # takes '.dat' file from LOSS Phot Pypeline (LPP) and returns data in pips.photdata()-readable format.
     # load info
     t,y,yerr1,yerr2 = np.loadtxt(path,delimiter='\t',usecols=(0,2,3,4),skiprows=1,unpack=True)
     band            = np.loadtxt(path,delimiter='\t',usecols=6,skiprows=1,dtype=str,unpack=True)
@@ -27,10 +29,10 @@ def data_readin(path):
     yerr = (yerr2 - yerr1)/2 
     
     # separate into B band and V band
-    data_V = [t[band=='V'],y[band=='V'],yerr[band=='V']]
-    data_B = [t[band=='B'],y[band=='B'],yerr[band=='B']]
+    data = [t[band=='V'],y[band=='V'],yerr[band=='V']]
+    # data_B = [t[band=='B'],y[band=='B'],yerr[band=='B']]
     
-    return data_V,data_B
+    return data#_V,data_B
 
 class photdata:
     ###########################
@@ -293,7 +295,7 @@ class photdata:
         if invert_y:
             ax.invert_yaxis()  
 
-    def plot_lc_doublemode(self,p1=None,p2=None):
+    def plot_lc_doublemode(self,p1=None,p2=None,figsize=(20,4),show=True):
         if not (p1 != None and p2 != None):
             p1 = self.p1
             p2 = self.p2
@@ -313,34 +315,41 @@ class photdata:
         first_tmp = phot_obj2.fourier_composition(x,2*np.pi/p1,*phot_obj2.get_best_fit_at_p(p1))
         second_component = y - first_tmp - A0
     
-        fig,(ax1,ax2,ax3,ax4) = plt.subplots(1,4,figsize=(20,4))
+        fig,(ax1,ax2,ax3,ax4) = plt.subplots(1,4,figsize=figsize,sharey=True)
     
         ax1.scatter(x%p1/p1,y,s=5,c='k')
         ax1.scatter(x%p1/p1+1,y,s=5,c='k')
-        ax1.set_xlabel('phase')
-        ax1.set_title(self.label+' data folded at p1',fontsize=15)
+        ax1.set_xlabel('phase',fontsize=20)
+        ax1.set_ylabel('V (mag)',fontsize=20)
+        ax1.set_title(self.label+' data folded at p1',fontsize=18)
         ax1.invert_yaxis()
+        ax1.set_xticks(ticks=[0,0.5,1,1.5,2])
         ylim = ax1.get_ylim()
     
         ax2.scatter(x%p2/p2,y,s=5,c='k')
         ax2.scatter(x%p2/p2+1,y,s=5,c='k')
-        ax2.set_xlabel('phase')
-        ax2.set_title(self.label+' data folded at pf',fontsize=15)
+        ax2.set_xlabel('phase',fontsize=20)
+        ax2.set_title(self.label+' data folded at pf',fontsize=18)
         ax2.invert_yaxis()
+        ax2.set_xticks(ticks=[0,0.5,1,1.5,2])
         ax2.set_ylim(ylim)
     
         ax3.scatter(x%p1/p1,A0+first_component,s=5,c='k')
         ax3.scatter(x%p1/p1+1,A0+first_component,s=5,c='k')
-        ax3.set_title('first overtone: p1={:.7f}'.format(p1),fontsize=15)
+        ax3.set_title('First overtone: p1={:.7f} (d)'.format(p1),fontsize=18)
         ax3.set_ylim(ylim)
-        ax3.set_xlabel('phase')
+        ax3.set_xticks(ticks=[0,0.5,1,1.5,2])
+        ax3.set_xlabel('phase',fontsize=20)
     
         ax4.scatter(x%p2/p2,A0+second_component,s=5,c='k')
         ax4.scatter(x%p2/p2+1,A0+second_component,s=5,c='k')
-        ax4.set_title('fundamental mode: pf={:.7f}'.format(p2),fontsize=15)
+        ax4.set_title('Fundamental mode: pf={:.7f} (d)'.format(p2),fontsize=18)
         ax4.set_ylim(ylim)
-        ax4.set_xlabel('phase')
-        plt.show()
+        ax4.set_xticks(ticks=[0,0.5,1,1.5,2])
+        ax4.set_xlabel('phase',fontsize=20)
+        plt.subplots_adjust(wspace=0.05)
+        if show:
+            plt.show()
         return x,A0,first_component,second_component,yerr
         
     ###########################    
@@ -481,8 +490,15 @@ class photdata:
         potential_min_list = []
         potential_list = []
         test_p_list_list = []
+        isInitial=True
         for f in freqs:
             p = 1/f[0]
+            if not isInitial:
+                if (p>test_p_list[0]) and (p<test_p_list[-1]):
+                    print('searching for the minimum around p={}... skipped (overlap)'.format(p))
+                    continue
+            else:
+                isInitial=False
             print('searching for the minimum around p={}...'.format(p))
             test_p_list = np.linspace(p-1000*initial_search_width,p+1000*initial_search_width,10*test_num)
             chi2_potential = self.get_global_potential(test_p_list)
