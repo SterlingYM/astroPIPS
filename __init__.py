@@ -111,7 +111,7 @@ class photdata:
         return y
 
     ###########################    
-    ### Data Manipulate Functions
+    ### Data Manipulation Functions
     ###########################    
     def phot_err_cut(self,Nsigma=1):
         # cuts data with uncertainties larger than threshold
@@ -192,7 +192,7 @@ class photdata:
         return chisq/num_data
 
     def get_global_potential(self,test_p_list):#test_p_min,test_p_max,test_num):
-#         test_p_list = np.linspace(test_p_min,test_p_max,test_num)
+        # test_p_list = np.linspace(test_p_min,test_p_max,test_num)
         if not self.quiet:
             print('computing chi2 potential...  ',end='')
         pool = Pool()
@@ -569,7 +569,7 @@ class photdata:
             current_std = min(np.std(abs(test_p_list-p_list)),np.std(p_list))
             print('old std = {}'.format(previous_std))
             print('new std = {}'.format(current_std))
-### TODO: clean this up ###
+        ### TODO: clean this up ###
             current_width = test_p_max - test_p_min
             if abs(1-current_std/previous_std) >= convergence_size_ratio or test_p_max - test_p_min < 0.8* previous_width:
                 print('std changed by {:.1f}% and width changed by {:.1f}%. Repeating the process with smaller search width...'.format(abs(1-current_std/previous_std)*100,abs(1-current_width/previous_width)*100))

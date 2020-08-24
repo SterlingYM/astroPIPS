@@ -1,39 +1,52 @@
 # Period-determination and Identification Pipeline Suite (PIPS)
-A more advanced version of getPeriod, which determines the period of short-period variable stars from photometry data. This code is under development and this documentation may be outdated.
+A set of pipelines built for Astrophysics photometry data analysis.
+Main use is the period determination of short-period variable stars. This code is under development and this documentation may be outdated.
 
-Yukei S. Murakami<br>
-sterling.astro@berkeley.edu
+(last edit: Aug 24, 2020)
 
--------------------------
 ![](sample_output.png)
+--------------------------
+## Developers
+
+* Main developer: [Yukei S. Murakami](https://www.fromthecalmsea.com) (sterling.astro@berkeley.edu)
+
+
+## Publications
+Please cite the following if PIPS is utilized for a scientific project:
+* Hoffman et al (submitted, arxiv link in prep)
+
+
 
 
 ---------------------
 ## Dependency
-
+* python (>=3.7)
 * numpy
 * scipy
 * matplotlib
 * time
 * astropy
-* seaborn
+* ~~seaborn~~
 
 
 ---------------------
-## Usage (ver 0.2.0)
+## Usage (ver 0.3.0)
 
-1. ```$mkdir gp2_workspace```
-2. ```$cd gp2_workspace```
-3. ```$git clone https://github.com/SterlingYM/getPeriod2```
-4. ```$jupyter notebook```
-5. In a jupyter cell, run following:
+1. ```$ mkdir pips_workspace```
+2. ```$ cd pips_workspace```
+3. ```$ git clone https://github.com/SterlingYM/PIPS```
+4. ```$ jupyter notebook```
+5. Start a new Python notebook. In a jupyter cell, run the following:
 ```python
-import getPeriod2 as gp2
-data_V,_ = gp2.data_readin('getPeriod2/sample_data/000.dat')
-phot_obj = gp2.photdata(data_V)
+import PIPS
+data_V   = PIPS.data_readin_LPP('getPeriod2/sample_data/000.dat',filter='V')
+phot_obj = PIPS.photdata(data_V)
 
 filtered_data = phot_obj.phot_err_cut()
 filtered_data.detect_period()
+# or, as a much quicker method when uncertainty of period is not needed,
+# filtered_data.detect_period_quick() 
+
 print(filtered_data.period)
 ```
 
@@ -42,7 +55,7 @@ Sample data credit: UCB SNe Search Team (Filippenko Group)
 ---------------------
 ## object ```photdata```
 
-PhotData object (```getPeriod2.photdata```) is the main component of this pipeline and contains photometry data. This PhotData is consisted of the data itself (time, magnitude/flux, and mag/flux error), parameters for various operations, and method functions to analyze the data. Having correctly set parameters is essential to obtain reliable results from this pipeline, and understanding the correct usage of method functions will allow an easier and faster analysis.
+PhotData object (```PIPS.photdata```) is the main component of this pipeline and contains photometry data. This PhotData is consisted of the data itself (time, magnitude/flux, and mag/flux error), parameters for various operations, and method functions to analyze the data. Having correctly set parameters is essential to obtain reliable results from this pipeline, and understanding the correct usage of method functions will allow an easier and faster analysis.
 
 ### photdata: data
 |name |description |unit |default|
@@ -104,4 +117,6 @@ PhotData object (```getPeriod2.photdata```) is the main component of this pipeli
 ##### (vi) Period detection
 |name |description |required arguments |optional arguments|return|
 |:----|:-----------|:------------------|:-----------------|:-----|
-|```photdata.detect_period(max_iteration=100,test_num=100,threshold=0.1,initial_search_width=1e-5,convergence_size_ratio=0.03,title='',show_plot=True,show_results=True)```||||period,period_err,amplitude|
+|```detect_period()```|The main function of PIPS. Determines period of variable star based on the data.||```max_iteration=100```: limiter in for loops<br>```test_num=100```: number of test points along trial period value space. Increasing this number makes the pipeline run slower, but decreases the chance of missing the 'true' peak.<br>```threshold=0.1``` the threshold ratio to cut the test-period window based on chi2 value. Making this value smaller will result in a faster but more unstable result.<br>```initial_search_width=1e-6```,<br> ```convergence_size_ratio=0.03```,<br> ```title=''```,<br> ```show_plot=True```,<br>```show_results=True```,<br> ```period_guess=None```|period,<br>period_err,<br>amplitude|
+|```detect_period_quick()```| a quicker method for period detection. period error is not determined.|||period,amplitude|
+|```detect_doublemode()```|a double-mode analysis. Under development.||||
