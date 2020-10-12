@@ -1,0 +1,12 @@
+name: PIPS
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python>=3.7
+  - numpy
+  - scipy
+  - astropy
+  - time
+  - matplotlib
