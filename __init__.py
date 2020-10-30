@@ -242,7 +242,7 @@ class photdata:
         max_data = self.t[self.mag == self.mag.min()]
         offset = max_th - max_data%self.period
         self.epoch = max_data + offset
-        return epoch
+        return self.epoch
         
     ###########################    
     ### plotting
