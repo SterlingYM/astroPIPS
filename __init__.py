@@ -52,6 +52,7 @@ class photdata:
         self.p1 = None
         self.p2 = None
         self.label = ''
+        self.epoch = None
 
         # options
         self.A0 = 15 # initial guess for mean mag (zeroth order in Fourier series)
@@ -229,7 +230,19 @@ class photdata:
                                   self.x,self.y,p0,maxfev=10000)
         return popt,period
 
-
+    def get_epoch(self):
+        '''calculates epoch from period and lc data'''
+        # generates best-fit lc
+        popt = self.get_best_fit_at_p(self.period)
+        x_th = np.linspace(0,self.period,1000)
+        y_th = self.fourier_composition(x_th,2*np.pi/self.period,*popt)
+        
+        # calculate epoch
+        max_th = x_th[y_th==y_th.min()]
+        max_data = self.t[self.mag == self.mag.min()]
+        offset = max_th - max_data%self.period
+        self.epoch = max_data + offset
+        return epoch
         
     ###########################    
     ### plotting
