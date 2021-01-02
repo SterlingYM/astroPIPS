@@ -30,7 +30,7 @@ Please cite the following if PIPS is utilized for a scientific project:
 
 
 ---------------------
-## Usage (ver 0.3.0)
+## Usage (ver 0.2.0)
 
 1. ```$ mkdir pips_workspace```
 2. ```$ cd pips_workspace```
