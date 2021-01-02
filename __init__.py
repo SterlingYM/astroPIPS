@@ -49,9 +49,9 @@ def get_bestfit_GM(x,y,yerr,period,return_yfit=True,return_params=False):
 def get_chi2_Fourier(x,y,yerr,period,Nterms=4):
     '''
     returns chi square value for the best-fit function at given folding period.
+    TODO: copy and paste the content of get_bestfit_Fourier() function
+          to make code run faster
     '''
-    # TODO: copy and paste the content of get_bestfit_Fourier() function
-    #       to make code run faster
     y_fit = get_bestfit_Fourier(x,y,yerr,period,return_yfit=True,return_params=False)
     return np.sum((y-y_fit)**2/yerr**2)/(len(y)-1)
     
@@ -69,7 +69,7 @@ def Fourier(self,period,params):
 
 def OC(photdata_obj,)
     '''
-    todo: Andrew will write this function
+    TODO: Andrew will write this function
     '''
 
 class photdata:
@@ -97,6 +97,7 @@ class photdata:
     functions (utilities):
         cut(self,xmin=None,xmax=None,ymin=None,ymax=None,yerr_min=None,yerr_max=None)
         reset_cuts()
+        summary()
         
     functions (data processing):
         periodogram(p_min,p_max,N,method,xdata=None,ydata=None,yerr_data=None,plot=False)
@@ -108,7 +109,7 @@ class photdata:
         classify()
     '''
     
-    def __init__(self,data,label=''):
+    def __init__(self,data,label='',band=''):
         '''
         Takes in a list or numpy array of time-series data
         e.g. ```[time,mag,mag_err]```
@@ -121,6 +122,7 @@ class photdata:
         self.amplitude = None
         self.amplitude_err = None
         self.label = label
+        self.band = ''
         self.epoch = None
         self.meanmag = None # based on best-fit function: requires period
         
@@ -156,6 +158,12 @@ class photdata:
     def reset_cuts():
         '''
         resets cuts applied by cut() function.
+        '''
+
+    def summary():
+        '''
+        prints out the summary.
+        TODO: Jupyter widget?
         '''
     
     #################
@@ -224,6 +232,8 @@ class photdata:
         TODO: this is going to be a big function and requires a lot of work!
         '''
         # self.type = 'RRab'
+
+    def open_widget()
 
 class StellarModels:
     '''
