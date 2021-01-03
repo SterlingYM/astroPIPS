@@ -25,6 +25,7 @@ Independent Functions:
 import matplotlib.pyplot as pyplot
 import numpy as np
 from scipy.optimize import curve_fit
+import numba
 
 
 #########################
@@ -203,6 +204,26 @@ class photdata:
         '''
         
         '''
+        @staticmethod
+        @numba.njit
+        def calc_val(t, omega, A0, a_list, b_list, k_list):
+            return_val = np.ones_like(t) * A0
+            for k,a,b in zip(k_list,a_list,b_list):
+                return_val += a*np.sin(k*omega*t) + b*np.cos(k*omega*t)
+            return return_val
+
+        def fourier_composition(self,t,omega,A0,*ab_list):
+            k_list = np.array(range(self.K))+1
+            a_list = ab_list[:self.K]
+            b_list = ab_list[self.K:]
+
+            return self.calc_val(t, omega, A0, a_list, b_list, k_list)
+
+        def fourier_composition_folded(self,x,period,A0,*ab_list):
+            omega = 2*np.pi/period
+            t = (np.array(x) % period)
+            y_fit = self.fourier_composition(t,omega,A0,*ab_list)
+            return y_fit
         
     def get_period_multi(N,FAR_max=1e-3):
         '''
