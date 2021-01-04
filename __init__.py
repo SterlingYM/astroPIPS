@@ -26,20 +26,88 @@ import matplotlib.pyplot as pyplot
 import numpy as np
 from scipy.optimize import curve_fit
 import numba
-
+from multiprocessing import Pool
+from functools import partial
 
 #########################
 # Independent Functions
 #########################
+def data_readin_LPP(path,filter='V'):
+    '''
+    to be updated
+    '''
+    # takes '.dat' file from LOSS Phot Pypeline (LPP) and returns data in pips.photdata()-readable format.
+    # load info
+    t,y,y_lower,y_upper = np.loadtxt(path,delimiter='\t',usecols=(0,2,3,4),skiprows=1,unpack=True)
+    band                = np.loadtxt(path,delimiter='\t',usecols=6,skiprows=1,dtype=str,unpack=True)
 
-def get_bestfit_Fourier(x,y,yerr,period,return_yfit=True,return_params=False):
+    # uncertainty is not linear in log scale (mag) so (y_upper-y) != (y-y_lower).
+    # taking the average of these two is not perfectly accurate, but it works (TODO: modify this?)
+    yerr = (y_upper - y_lower)/2 
+    
+    # separate into specified band
+    data = [t[band==filter],y[band==filter],yerr[band==filter]]
+    return data
+
+@numba.njit
+def Fourier(x,period,Nterms,params,debug=False):
+    '''
+    A Fourier function (model) that calculates y-value 
+    at each x-value for given period and parametrs.
+    ** IMPORTANT NOTE: ```params``` has to be a numpy array (not python list)
+    '''
+    if debug:
+        print('*Fourier: starting Fourier')
+        print('*Fourier: params = ',params)
+    y = np.ones_like(x) * params[0]
+    C_list = params[1:Nterms+1]
+    phi_list = params[Nterms+1:]
+    if debug:
+        print('*Fourier: y_initial = ',y)
+        print('*Fourier: C_list = ',C_list)
+        print('*Fourier: phi_list = ',phi_list)
+    for i in range(Nterms):
+        y += C_list[i] * np.cos((i+1)*2*np.pi*x/period + phi_list[i])
+    if debug:
+        print('*Fourier: y after calculation = ',y)
+    return y
+
+def get_bestfit_Fourier(x,y,yerr,period,Nterms,return_yfit=True,return_params=False,
+                        debug=False):
     '''
     ### Fourier Model ###
     returns best-fit y-values at given x
     if return_yfit==True, it returns best-fit y-values at given x
     if return_params==True, it returns best-fit parameters (model-dependent)
+    NOTE: Fourier parameters are not bound to keep the code fast.
+    For stellar parameter calculation purpose, use tools in StellarModels class.
     '''
-    return y-fit
+    if debug:
+        print('*get_bestfit_Fourier: starting process get_bestfit_Fourier(): ')
+        print('*get_bestfit_Fourier: x = ',x)
+        print('*get_bestfit_Fourier: y = ',y)
+        print('*get_bestfit_Fourier: yerr = ',yerr)
+    par0 = [np.mean(y),*np.zeros(2*Nterms)]
+    if debug:
+        print('*get_bestfit_Fourier: par0 = ',par0)
+
+    popt,pcov = curve_fit(
+        lambda x,*params:Fourier(x,period,Nterms,np.array(params),debug=debug),
+        x,y,sigma=yerr,p0=par0,maxfev=100000)
+    if debug:
+        print('*get_bestfit_Fourier: optimization finished')
+        print('*get_bestfit_Fourier: popt = ',popt)
+        print('*get_bestfit_Fourier: pcov = ',pcov)
+    if return_yfit:
+        y_fit = Fourier(x,period,Nterms,popt)
+        if debug:
+            print('*get_bestfit_Fourier: y_fit = ',y_fit)
+        if not return_params:
+            return y_fit
+        if return_params:
+            return y_fit,popt
+    elif return_params:
+        return popt
 
 def get_bestfit_GM(x,y,yerr,period,return_yfit=True,return_params=False):
     '''
@@ -53,25 +121,109 @@ def get_chi2_Fourier(x,y,yerr,period,Nterms=4):
     TODO: copy and paste the content of get_bestfit_Fourier() function
           to make code run faster
     '''
-    y_fit = get_bestfit_Fourier(x,y,yerr,period,return_yfit=True,return_params=False)
+    y_fit = get_bestfit_Fourier(x,y,yerr,period,Nterms,return_yfit=True,return_params=False)
     return np.sum((y-y_fit)**2/yerr**2)/(len(y)-1)
     
 def get_chi2ref(x,y,yerr):
     '''
     returns non-varying reference of chi2 (model independent)
     '''
+    return np.sum((y-np.mean(y))**2/(yerr)**2)/(len(y)-1)
 
-def Fourier(self,period,params):
-    '''
-    A Fourier function (model) that calculates y-value 
-    at each x-value for given period and parametrs.
-    '''
-    return y
-
-def OC(photdata_obj,)
+def OC(photdata_obj):
     '''
     TODO: Andrew will write this function
     '''
+
+def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,**kwargs):
+    '''
+    linear algebra-based periodogram.
+    '''
+    # weighted y prep
+    w = (1/yerr)**2 / np.sum((1/yerr)**2)
+    Y = (y - np.dot(w,y))/yerr # w*y = weighted mean
+
+    # matrix prep
+    ii = (np.arange(Nterms)+1).repeat(len(x)).reshape(Nterms,len(x),).T
+    xx = x.repeat(Nterms).reshape(len(x),Nterms)
+    ee = yerr.repeat(Nterms).reshape(len(x),Nterms)
+    if xx.shape != ee.shape:
+        raise ValueError('y-error data size does not match x-data size')
+
+    # worker prep -- calculate power (= chi2ref-chi2)
+    global calc_power
+    def calc_power(period):
+        '''
+        find best-fit solution:
+        X*P = Y ==> XT*X*Q = XT*Y
+        power(P) = yT*X*
+        '''
+        # Fourier series prep
+        sin_terms = np.sin(ii*2*np.pi*xx/period)/ee
+        cos_terms = np.cos(ii*2*np.pi*xx/period)/ee
+        X = np.concatenate((sin_terms,cos_terms),axis=1)
+
+        # linear algebra
+        XTX = np.dot(X.T,X)
+        XTY = np.dot(X.T,Y)
+        params = np.linalg.solve(XTX,XTY)
+        Yfit = np.dot(X,params)
+        return np.dot(Y,Yfit)+np.dot(Y-Yfit,Yfit)
+        # return np.dot(XTY.T,params)
+
+    # main
+    periods = np.linspace(p_min,p_max,N)
+    if multiprocessing:
+        pool = Pool()
+        chi2 = pool.map(calc_power,periods)
+        pool.close()
+        pool.join()
+    else:
+        chi2 = np.asarray(list(map(calc_power,periods)))
+
+    # normalize
+    chi2ref = np.dot(Y,Y)
+    power = chi2/chi2ref
+    return periods,power
+
+def periodogram_custom(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,model='Fourier',**kwargs):
+    '''
+    model-dependent, individual fitting-based periodogram. Can be customized for any model.
+    '''
+    MODELS = {
+        'Fourier': get_chi2_Fourier
+    }
+    MODEL_KWARGS = {
+        'Fourier': {'x':x,'y':y,'yerr':yerr,'Nterms':Nterms}
+    }
+
+    periods = np.linspace(p_min,p_max,N)
+    if multiprocessing==True:
+        global mp_worker
+        def mp_worker(period):
+            return MODELS[model](period=period,**MODEL_KWARGS[model])
+        pool = Pool()
+        chi2 = pool.map(mp_worker,periods)
+        pool.close()
+        pool.join()
+    else:
+        chi2 = np.array(list(map(lambda period: MODELS[model](period=period,**MODEL_KWARGS[model]),periods)))
+    chi2ref = get_chi2ref(x,y,yerr)
+    power = 1 - chi2/chi2ref
+
+    return periods, power
+
+####################
+# Computing helpers
+####################
+def worker_init(func):
+    '''multiprocessing worker initializer for lambda function'''
+    global _func
+    _func = func
+
+def worker(period):
+    '''multiprocessing worker'''
+    return _func(period)
 
 class photdata:
     '''
@@ -156,23 +308,23 @@ class photdata:
         # cut operations here
 
         
-    def reset_cuts():
+    def reset_cuts(self):
         '''
         resets cuts applied by cut() function.
         '''
 
-    def summary():
+    def summary(self):
         '''
         prints out the summary.
         TODO: Jupyter widget?
         '''
-    
+
+
     #################
     # analysis tools
     #################      
-        
-    def periodogram(p_min,p_max,N,model,xdata=None,ydata=None,yerr_data=None,plot=False,
-                    multiprocessing=True):
+    def periodogram(self,p_min,p_max,N,method='fast',x=None,y=None,yerr=None,plot=False,
+                    multiprocessing=True,Nterms=5,**kwargs):
         '''
         Returns periodogram.
         inputs:
@@ -190,42 +342,29 @@ class photdata:
             power 
             (and axis if plot==True)
         '''
-        if xdata==ydata==yerr_data==None:
-            xdata = self.x
-            ydata = self.y
-            yerr_data = self.yerr
-        periods = np.linspace(p_min,p_max,N)
-        
-        ## model-dependent statements here
-        chi2 = pool.map(get_chi2_Fourier,periods,args=[model])
-        return periods, powers
+        if x==y==yerr==None:
+            x = self.x
+            y = self.y
+            yerr = self.yerr
+
+        METHODS = {
+            'fast': periodogram_fast,
+            'custom': periodogram_custom
+        }
+        METHOD_KWARGS = {
+            'fast': {'p_min':p_min,'p_max':p_max,'N':N,'x':x,'y':y,'yerr':yerr,'Nterms':Nterms,'multiprocessing':multiprocessing},
+            'custom':{'p_min':p_min,'p_max':p_max,'N':N,'x':x,'y':y,'yerr':yerr,'Nterms':Nterms,'multiprocessing':multiprocessing,'model':'Fourier'}
+        }
+        periods,power = METHODS[method](**METHOD_KWARGS[method])
+        return periods, power
     
-    def get_period(method='Fourier'):
+    def get_period(self,method='Fourier'):
         '''
         
         '''
-        @staticmethod
-        @numba.njit
-        def calc_val(t, omega, A0, a_list, b_list, k_list):
-            return_val = np.ones_like(t) * A0
-            for k,a,b in zip(k_list,a_list,b_list):
-                return_val += a*np.sin(k*omega*t) + b*np.cos(k*omega*t)
-            return return_val
-
-        def fourier_composition(self,t,omega,A0,*ab_list):
-            k_list = np.array(range(self.K))+1
-            a_list = ab_list[:self.K]
-            b_list = ab_list[self.K:]
-
-            return self.calc_val(t, omega, A0, a_list, b_list, k_list)
-
-        def fourier_composition_folded(self,x,period,A0,*ab_list):
-            omega = 2*np.pi/period
-            t = (np.array(x) % period)
-            y_fit = self.fourier_composition(t,omega,A0,*ab_list)
-            return y_fit
+ 
         
-    def get_period_multi(N,FAR_max=1e-3):
+    def get_period_multi(self,N,FAR_max=1e-3):
         '''
         multi-period detection. 
         Re-detects P1 and then proceeds to P2, P3, ... PN.
@@ -233,7 +372,7 @@ class photdata:
         '''
         
         
-    def amplitude_spectrum(p_min,p_max,N,model,plot=False):
+    def amplitude_spectrum(self,p_min,p_max,N,model,plot=False):
         '''
         Returns the amplitude spectrum.
         inputs: p_min, p_max, model, plot
@@ -241,20 +380,21 @@ class photdata:
         '''
         return period, amplitude
 
-    def get_meanmag()
+    def get_meanmag(self):
         '''
         calculates an estimated mean magnitude from best-fit curve.
         This method requires a reliable fitting, but is more robust against incomplete sampling in pulsation phase
         '''
 
-    def classify()
+    def classify(self):
         '''
         performs the classification of this object based on provided photometric data.
         TODO: this is going to be a big function and requires a lot of work!
         '''
         # self.type = 'RRab'
 
-    def open_widget()
+    def open_widget(self):
+        print('in development')
 
 class StellarModels:
     '''
@@ -296,4 +436,3 @@ class visualize:
         plot_amplitude_spectrum(df)
         plot_OC(df)
     '''
-    
