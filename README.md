@@ -19,21 +19,6 @@ Please cite the following if PIPS is utilized for a scientific project:
 
 
 ---------------------
-## Installation
-### Conda
-A [conda](https://docs.conda.io/en/latest/) environment for PIPS can be created by running
-
-```conda env create -f environment.yml```
-
-This environment can subsequently activated with
-
-```conda activate PIPS```
-
-### Pip
-To install dependencies through [pip](https://pypi.org/project/pip/), run
-
- ``` pip install -r requirements.txt```
-
 ## Dependency
 * python (>=3.7)
 * numpy
@@ -45,7 +30,7 @@ To install dependencies through [pip](https://pypi.org/project/pip/), run
 
 
 ---------------------
-## Usage (ver 0.3.0)
+## Usage (ver 0.2.0)
 
 1. ```$ mkdir pips_workspace```
 2. ```$ cd pips_workspace```
