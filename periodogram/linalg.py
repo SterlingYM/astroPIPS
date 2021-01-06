@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 from multiprocessing import Pool
 
-def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,**kwargs):
+def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom_periods=None,**kwargs):
     '''
     linear algebra-based periodogram.
     '''
@@ -26,9 +26,10 @@ def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,**kwar
         power(P) = yT*X*
         '''
         # Fourier series prep
+        const_term = np.ones_like(x).reshape(len(x),1)
         sin_terms = np.sin(ii*2*np.pi*xx/period)/ee
         cos_terms = np.cos(ii*2*np.pi*xx/period)/ee
-        X = np.concatenate((sin_terms,cos_terms),axis=1)
+        X = np.concatenate((const_term,sin_terms,cos_terms),axis=1)
 
         # linear algebra
         XTX = np.dot(X.T,X)
@@ -36,10 +37,16 @@ def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,**kwar
         params = np.linalg.solve(XTX,XTY)
         Yfit = np.dot(X,params)
         return np.dot(Y,Yfit)+np.dot(Y-Yfit,Yfit)
-        # return np.dot(XTY.T,params)
+
+    # period prep
+    if custom_periods is not None:
+        periods = custom_periods
+    elif (p_min is not None) and (p_max is not None):
+        periods = np.linspace(p_min,p_max,N)
+    else:
+        raise ValueError('period range or period list are not given')
 
     # main
-    periods = np.linspace(p_min,p_max,N)
     if multiprocessing:
         pool = Pool()
         chi2 = pool.map(calc_power,periods)

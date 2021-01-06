@@ -12,7 +12,7 @@ def get_chi2ref(x,y,yerr):
     '''
     return np.sum((y-np.mean(y))**2/(yerr)**2)/(len(y)-1)
 
-def periodogram_custom(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,model='Fourier',**kwargs):
+def periodogram_custom(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,model='Fourier',custom_periods=None,**kwargs):
     '''
     model-dependent, individual fitting-based periodogram. Can be customized for any model.
     '''
@@ -23,7 +23,15 @@ def periodogram_custom(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,mode
         'Fourier': {'x':x,'y':y,'yerr':yerr,'Nterms':Nterms}
     }
 
-    periods = np.linspace(p_min,p_max,N)
+    # prepare periods
+    if (p_min is not None) and (p_max is not None):
+        periods = np.linspace(p_min,p_max,N)
+    elif custom_periods is not None:
+        periods = custom_periods
+    else:
+        raise ValueError('period range or period list are not given')
+
+    # main
     if multiprocessing==True:
         global mp_worker
         def mp_worker(period):

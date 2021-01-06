@@ -22,7 +22,7 @@ def fourier(x,period,Nterms,params,debug=False):
         print('*Fourier: C_list = ',C_list)
         print('*Fourier: phi_list = ',phi_list)
     for i in range(Nterms):
-        y += C_list[i] * np.cos((i+1)*2*np.pi*x/period + phi_list[i])
+        y = y + C_list[i] * np.cos((i+1)*2*np.pi*x/period + phi_list[i])
     if debug:
         print('*Fourier: y after calculation = ',y)
     return y
@@ -47,8 +47,7 @@ def get_bestfit_Fourier(x,y,yerr,period,Nterms,return_yfit=True,return_params=Fa
         print('*get_bestfit_Fourier: par0 = ',par0)
 
     popt,pcov = curve_fit(
-        lambda x,*params:fourier(x,period,Nterms,np.array(params),debug=debug),
-        x,y,sigma=yerr,p0=par0,maxfev=100000)
+        lambda x,*params:fourier(x,period,Nterms,np.array(params),debug=debug),x,y,sigma=yerr,p0=par0,maxfev=100000)
     if debug:
         print('*get_bestfit_Fourier: optimization finished')
         print('*get_bestfit_Fourier: popt = ',popt)
@@ -61,8 +60,8 @@ def get_bestfit_Fourier(x,y,yerr,period,Nterms,return_yfit=True,return_params=Fa
             return y_fit
         if return_params:
             return y_fit,popt
-        elif return_params:
-            return popt
+    elif return_params:
+        return popt
 
 def get_chi2_Fourier(x,y,yerr,period,Nterms=4):
     '''
