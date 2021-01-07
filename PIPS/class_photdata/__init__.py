@@ -5,9 +5,9 @@ import numba
 from multiprocessing import Pool
 import time
 
-from periodogram.custom import periodogram_custom
-from periodogram.linalg import periodogram_fast
-from periodogram.models.Fourier import fourier,get_bestfit_Fourier
+from ..periodogram.custom import periodogram_custom
+from ..periodogram.linalg import periodogram_fast
+from ..periodogram.models.Fourier import fourier,get_bestfit_Fourier
 
 class photdata:
     '''
@@ -69,33 +69,78 @@ class photdata:
     def cut(self,xmin=None,xmax=None,ymin=None,ymax=None,yerr_min=None,yerr_max=None):
         '''
         Cuts data based on given min-max ranges.
-        Once this is run, new variables (cut_xmin, cut_xmax, etc.) are assigned
-        to save the cut conditions.
+        Once this is run, new variables (cut_xmin, cut_xmax, etc.) are assigned to save the cut conditions.
         
-        The raw (original) data is stored in new variables x_raw,y_raw,yerr_raw.
-        If raw variables exist, this function assumes cuts are previously applied,
-        and raw variables will not be updated. 
+        The raw (original) data is stored in new variables x_raw,y_raw,yerr_raw. If raw variables exist, this function assumes cuts are previously applied, and raw variables will not be updated. 
         [i.e. cuts are always applied to the raw data]
         reset_cuts() function resets cuts.
         
         returns nothing.
         '''
-        self.cut_xmin = xmin
-        self.cut_xmax = xmax
-        self.cut_ymin = ymin
-        self.cut_ymax = ymax
-        self.cut_yerr_min = yerr_min
-        self.cut_yerr_max = yerr_max
-        self.x_raw = self.x
-        self.y_raw = self.y
-        self.yerr_raw = self.yerr
-        # cut operations here
+        # first-time operation
+        if not hasattr(self,'cut_xmin'):
+            # cut_xmin does not exist until cut() is run for the first time. Once it is run, cut_xmin==None and does exist even if the cut is not applied in x.
+            self.x_raw = self.x
+            self.y_raw = self.y
+            self.yerr_raw = self.yerr
 
+            # initialize 
+            self.cut_xmin = xmin
+            self.cut_xmax = xmax
+            self.cut_ymin = ymin
+            self.cut_ymax = ymax
+            self.cut_yerr_min = yerr_min
+            self.cut_yerr_max = yerr_max
+
+        # second time and after: update cuts
+        else:
+            if xmin is not None:
+                self.cut_xmin = xmin
+            if xmax is not None:
+                self.cut_xmax = xmax
+            if ymin is not None:
+                self.cut_ymin = ymin
+            if ymax is not None:
+                self.cut_ymax = ymax
+            if yerr_min is not None:
+                self.cut_yerr_min = yerr_min
+            if yerr_max is not None:
+                self.cut_yerr_max = yerr_max
+
+        # prepare cut conditions
+        condition = np.full(self.x_raw.shape, True, dtype=bool)
+        if self.cut_xmin is not None:
+            condition = condition & (self.x_raw >= self.cut_xmin)
+        if self.cut_xmax is not None:
+            condition = condition & (self.x_raw <= self.cut_xmax)
+        if self.cut_ymin is not None:
+            condition = condition & (self.y_raw >= self.cut_ymin)
+        if self.cut_ymax is not None:
+            condition = condition & (self.y_raw <= self.cut_ymax)
+        if self.cut_yerr_min is not None:
+            condition = condition & (self.yerr_raw >= self.cut_yerr_min)
+        if self.cut_yerr_max is not None:
+            condition = condition & (self.yerr_raw <= self.cut_yerr_max)
+
+        # apply cuts
+        self.x = self.x_raw[condition]
+        self.y = self.y_raw[condition]
+        self.yerr = self.yerr_raw[condition]
         
     def reset_cuts(self):
         '''
         resets cuts applied by cut() function.
         '''
+        if hasattr(self,'x_raw'):
+            self.cut_xmin = None
+            self.cut_xmax = None
+            self.cut_ymin = None
+            self.cut_ymax = None
+            self.cut_yerr_min = None
+            self.cut_yerr_max = None
+            self.x = self.x_raw
+            self.y = self.y_raw
+            self.yerr = self.yerr_raw
 
     def summary(self):
         '''
@@ -214,16 +259,16 @@ class photdata:
             'Fourier': get_bestfit_Fourier(x,y,yerr,period,Nterms,return_yfit=False,return_params=True)
         }
 
-        # detect scalar multiple of the main pulsation period
+        # detect aliasing
         if model=='Fourier':
             if debug: 
-                print(f'{time.time()-t0:.3f}s --- detecting scalar multiple of the main pulsation period...')
+                print(f'{time.time()-t0:.3f}s --- detecting aliasing...')
             factor = np.argmax(abs(MODEL_bestfit[model][1:Nterms]))+1
             if factor != 1:
                 period /= factor
                 MODEL_bestfit[model] = get_bestfit_Fourier(x,y,yerr,period,Nterms,return_yfit=False,return_params=True)
             if debug:
-                print(f'{time.time()-t0:.3f}s --- factor: ',factor)
+                print(f'{time.time()-t0:.3f}s --- alias factor: ',factor)
                 print(f'{time.time()-t0:.3f}s --- period: ',period)
 
         # get uncertainty
@@ -238,7 +283,7 @@ class photdata:
             print(f'{time.time()-t0:.3f}s --- period error: ',period_err)
         if period_err == np.inf:
             period_err = default_err
-            
+
         # re-sample if sampling size is not fine enough
         if (period_err < (2*peak_width/N_peak_test)*10) or force_refine:
             if debug:
@@ -261,15 +306,13 @@ class photdata:
         if debug:
             print(f'{time.time()-t0:.3f}s --- process completed.')
         return period,period_err
-
-        
+   
     def get_period_multi(self,N,FAR_max=1e-3):
         '''
         multi-period detection. 
         Re-detects P1 and then proceeds to P2, P3, ... PN.
         Pn=None if FAR for nth period exceeds given thershold.
         '''
-        
         
     def amplitude_spectrum(self,p_min,p_max,N,model,plot=False):
         '''

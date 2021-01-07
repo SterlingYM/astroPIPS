@@ -3,7 +3,7 @@ from scipy.optimize import curve_fit
 import numba
 from multiprocessing import Pool
 
-from periodogram.models.Fourier import fourier, get_bestfit_Fourier, get_chi2_Fourier
+from .models.Fourier import fourier, get_bestfit_Fourier, get_chi2_Fourier
 # from models.Gaussian import 
 
 def get_chi2ref(x,y,yerr):
