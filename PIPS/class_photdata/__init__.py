@@ -148,6 +148,54 @@ class photdata:
         TODO: Jupyter widget?
         '''
 
+    def prepare_data(self,x,y,yerr):
+        if (x is None) and (y is None) and (yerr is None):
+            x = self.x
+            y = self.y
+            yerr = self.yerr
+        elif not ((x is not None) and (y is not None) and (yerr is not None)):
+            raise ValueError('Input data is incomplete. All x, y, and yerr are needed.')
+        return x,y,yerr
+
+    def get_bestfit_curve(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5,x_th=None):
+        '''
+        Calculates the best-fit smooth curve.
+        '''
+        # prepare data
+        x,y,yerr = self.prepare_data(x,y,yerr)
+
+        # model-dependent options
+        MODEL_bestfit = {
+            'Fourier': get_bestfit_Fourier
+        }
+        MODELS = {
+            'Fourier': fourier
+        }
+
+        # 
+        popt = MODEL_bestfit[model](x,y,yerr,period,Nterms,return_yfit=False,return_params=True)
+        
+        # construct theoretical curve
+        if x_th is None:
+            x_th = np.linspace(0,period,1000)
+        y_th = MODELS[model](x_th,period,Nterms,np.array(popt))
+
+        return x_th,y_th
+
+    def get_bestfit_amplitude(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5):
+        '''
+        calculates the amplitude of best-fit curve.
+        '''
+        _,y_th = self.get_bestfit_curve(x,y,yerr,period,model,Nterms)
+        return np.max(y_th)-np.min(y_th)
+
+    def get_meanmag(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5):
+        '''
+        calculates an estimated mean magnitude from best-fit curve.
+        This method requires a reliable fitting, but is more robust against incomplete sampling in pulsation phase
+        '''
+        _,y_th = self.get_bestfit_curve(x,y,yerr,period,model,Nterms)
+        return np.mean(y_th)
 
     #################
     # analysis tools
@@ -171,12 +219,7 @@ class photdata:
             (and axis if plot==True)
         '''
         # prepare data
-        if (x is None) and (y is None) and (yerr is None):
-            x = self.x
-            y = self.y
-            yerr = self.yerr
-        elif not ((x is not None) and (y is not None) and (yerr is not None)):
-            raise ValueError('Input data is incomplete. All x, y, and yerr are needed.')
+        x,y,yerr = self.prepare_data(x,y,yerr)
         
         # determine sampling size
         N_auto = int(N0 * (x.max()-x.min()) * (1/p_min))
@@ -208,22 +251,32 @@ class photdata:
         '''
         detects period.
         '''
+        # model-dependent options
+        MODEL_helpers = {
+            'Fourier': lambda x,*params: fourier(x,params[0],Nterms,np.array(params[1:]))
+        }
+        MODEL_bestfit = {
+            'Fourier': get_bestfit_Fourier
+        }
+
+        # debug mode option outputs the progress 
+        # (TODO: change this to verbosity - or logger?)
         if debug:
             t0 = time.time()
             print(f'{time.time()-t0:.3f}s --- starting the process...')
+            print(f'{time.time()-t0:.3f}s --- preparing data...')
 
         # prepare data
-        if (x is None) and (y is None) and (yerr is None):
-            x = self.x
-            y = self.y
-            yerr = self.yerr
-        elif not ((x is not None) and (y is not None) and (yerr is not None)):
-            raise ValueError('Input data is incomplete. All x, y, and yerr are needed.')
+        x,y,yerr = self.prepare_data(x,y,yerr)
 
         # get periodogram
+        if debug:
+            print(f'{time.time()-t0:.3f}s --- getting a periodogram...')
         period,power = self.periodogram(p_min=p_min,p_max=p_max,x=x,y=y,yerr=yerr,method=method,model=model,Nterms=Nterms,debug=False,**kwargs)
 
         # select top peaks_to_test independent peaks
+        if debug:
+            print(f'{time.time()-t0:.3f}s --- detecting top {peaks_to_test} peaks...')
         peak_idx = []
         peak_width = 1/(x.max()-x.min())
         peak_idx_width = int(peak_width/(period[1]-period[0]))
@@ -251,82 +304,153 @@ class photdata:
         if debug:
             print(f'{time.time()-t0:.3f}s --- period candidate: ', period)
             
-        # model-dependent options
-        MODEL_helpers = {
-            'Fourier': lambda x,*params: fourier(x,params[0],Nterms,np.array(params[1:]))
-        }
-        MODEL_bestfit = {
-            'Fourier': get_bestfit_Fourier(x,y,yerr,period,Nterms,return_yfit=False,return_params=True)
-        }
+        model_bestfit = MODEL_bestfit[model](x,y,yerr,period,Nterms,return_yfit=False,return_params=True)
 
         # detect aliasing
         if model=='Fourier':
             if debug: 
                 print(f'{time.time()-t0:.3f}s --- detecting aliasing...')
-            factor = np.argmax(abs(MODEL_bestfit[model][1:Nterms]))+1
+            factor = np.argmax(abs(model_bestfit[1:Nterms]))+1
             if factor != 1:
                 period /= factor
-                MODEL_bestfit[model] = get_bestfit_Fourier(x,y,yerr,period,Nterms,return_yfit=False,return_params=True)
+                model_bestfit = MODEL_bestfit[model](x,y,yerr,period,Nterms,return_yfit=False,return_params=True)
             if debug:
                 print(f'{time.time()-t0:.3f}s --- alias factor: ',factor)
-                print(f'{time.time()-t0:.3f}s --- period: ',period)
+                print(f'{time.time()-t0:.3f}s --- period candidate: ',period)
 
         # get uncertainty
         if debug:
-            print(f'{time.time()-t0:.3f}s --- estiating the uncertainty...')
-        #     print(f'{time.time()-t0:.3f}s --- par0: ',MODEL_bestfit[model])
-        popt,pcov = curve_fit(MODEL_helpers[model],x,y,sigma=yerr, p0=[period,*MODEL_bestfit[model]],maxfev=100000)
+            print(f'{time.time()-t0:.3f}s --- estimating the uncertainty...')
+        popt,pcov = curve_fit(MODEL_helpers[model],x,y,sigma=yerr, p0=[period,*model_bestfit],maxfev=100000)
         period_err = np.sqrt(np.diag(pcov))[0]
         if debug: 
             print(f'{time.time()-t0:.3f}s --- period candidate: ',period)
-            print(f'{time.time()-t0:.3f}s --- period fitted: ',popt[0])
+            print(f'{time.time()-t0:.3f}s --- period fitted*: ',popt[0])
             print(f'{time.time()-t0:.3f}s --- period error: ',period_err)
         if period_err == np.inf:
-            period_err = default_err
+            # automatically activate the refinement process
+            period_err = 0 
 
         # re-sample if sampling size is not fine enough
         if (period_err < (2*peak_width/N_peak_test)*10) or force_refine:
             if debug:
                 print(f'{time.time()-t0:.3f}s --- refining samples...')
-            custom_periods = np.linspace(period-period_err,period+period_err,N_peak_test)
+                print(f'{time.time()-t0:.3f}s --- refining search width = {peak_width/10:.3e}')
+
+            # prepare new search width -- narrower and thus refined
+            #TODO: discuss this method
+            new_search_width = peak_width/N_peak_test*100 
+            custom_periods = np.linspace(period-new_search_width,period+new_search_width,N_peak_test)
+
+            # get periodogram
             period,power = self.periodogram(
                 custom_periods=custom_periods,
                 x=x,y=y,yerr=yerr,method=method,model=model,Nterms=Nterms,**kwargs
                 )
-            period = period[power==power.max()][0]  
-            _,pcov = curve_fit(MODEL_helpers[model],x,y,sigma=yerr, p0=[period,*MODEL_bestfit[model][1:]],maxfev=100000)
+            period = period[power==power.max()][0]
+
+            # get uncertainty
+            model_bestfit = MODEL_bestfit[model](x,y,yerr,period,Nterms,return_yfit=False,return_params=True)
+            _,pcov = curve_fit(MODEL_helpers[model],x,y,sigma=yerr, p0=[period,*model_bestfit],maxfev=100000)
             period_err = np.sqrt(np.diag(pcov))[0]
             if debug: 
                 print(f'{time.time()-t0:.3f}s --- period candidate: ',period)
-                print(f'{time.time()-t0:.3f}s --- period fitted: ',popt[0])
+                print(f'{time.time()-t0:.3f}s --- period fitted*: ',popt[0])
                 print(f'{time.time()-t0:.3f}s --- period error: ',period_err)
 
+        # check: is the size of uncertainty close to the deviation size
+        # within a factor of two or less?
+        fit_peak_deviation = abs(popt[0]-period)
+        if debug:
+            print(f'{time.time()-t0:.3f}s --- * validating period error...')
+            print(f'{time.time()-t0:.3f}s --- * fitted period - peak period = {fit_peak_deviation:.2e}')
+            print(f'{time.time()-t0:.3f}s --- * expected deviation size = {period_err:.2e}')
+        if (fit_peak_deviation > 2*period_err) or (period_err==np.inf):
+            warningMessage = 'warning: provided uncertainty may not be accurate. Try increasing sampling size (N_peak_test, default 500) and/or turn on the force_refine option.'
+            print(warningMessage)
+        elif debug:
+            print(f'{time.time()-t0:.3f}s --- * period error validated')
+
+        if period_err == np.inf:
+            print('warning: error size infinity: replacing with periodogram peak width')
+            period_err = peak_width
+
+        # finalize
         self.period = period
         self.period_err = period_err
         if debug:
+            print(f'{time.time()-t0:.3f}s ---','period = {:.{precision}f} +- {:.{precision}f}d'.format(period,period_err,precision=5 if period_err==np.inf else int(abs(np.log10(period_err))+2)))
             print(f'{time.time()-t0:.3f}s --- process completed.')
         return period,period_err
    
-    def get_period_multi(self,N,FAR_max=1e-3):
+    def get_period_multi(self,N,FAR_max=1e-3,model='Fourier',Nterms=5,**kwargs):
         '''
         multi-period detection. 
         Re-detects P1 and then proceeds to P2, P3, ... PN.
         Pn=None if FAR for nth period exceeds given thershold.
         '''
-        
-    def amplitude_spectrum(self,p_min,p_max,N,model,plot=False):
+        # TODO: implement FAR
+
+        # model-dependent options
+        MODEL_bestfit = {
+            'Fourier': get_bestfit_Fourier
+        }
+
+        # data prep
+        x_prewhitened = self.x.copy()
+        y_prewhitened = self.y.copy()
+        yerr_prewhitened = self.yerr.copy()
+
+        # repeats period detection -> prewhitening
+        periods = []
+        period_errors = []
+        amplitudes = []
+
+        for _ in range(N):
+            period,period_err = self.get_period(
+                x=x_prewhitened,
+                y=y_prewhitened,
+                yerr=yerr_prewhitened,
+                model=model,Nterms=Nterms,**kwargs)
+            periods.append(period)
+            period_errors.append(period_err)
+            amp = self.get_bestfit_amplitude(
+                x=x_prewhitened,
+                y=y_prewhitened,
+                yerr=yerr_prewhitened,
+                period=period,
+                model=model,Nterms=Nterms)
+            amplitudes.append(amp)
+            y_prewhitened -= MODEL_bestfit[model](
+                x_prewhitened,
+                y_prewhitened,
+                yerr_prewhitened,
+                period,
+                Nterms,return_yfit=True,return_params=False)
+        return periods,period_errors,amplitudes
+
+    def amplitude_spectrum(self,p_min,p_max,N,model='Fourier',grid=10000,plot=False,Nterms=5,**kwargs):
         '''
         Returns the amplitude spectrum.
         inputs: p_min, p_max, model, plot
         returns: period, amplitude (and axis if plot==True)
         '''
-        # return period, amplitude
 
-    def get_meanmag(self):
-        '''
-        calculates an estimated mean magnitude from best-fit curve.
-        This method requires a reliable fitting, but is more robust against incomplete sampling in pulsation phase
-        '''
+        periods,period_errors,amplitudes = self.get_period_multi(
+            N,
+            model=model,
+            Nterms=Nterms,
+            **kwargs)
+
+        period_grid = np.linspace(p_min,p_max,grid)
+        spectrum = np.zeros(grid)
+
+        for period,error,amp in zip(periods,period_errors,amplitudes):
+            if error < (p_max-p_min)/grid:
+                spectrum[np.argmin(abs(period_grid-period))]=amp
+            else:
+                spectrum += amp*np.exp(-(period_grid-period)**2/(2*error**2))
+        return period_grid, spectrum
 
     def classify(self):
         '''
