@@ -26,8 +26,7 @@ class photdata:
         meanmag: mean magnitude (assuming y-value is in mag)
         p0,p1,p2,...,pN
         A0,A1,A2,...,AN
-        
-        
+            
     functions (data preparation):
         __init__(self,data,label='')
         
@@ -35,15 +34,20 @@ class photdata:
         cut(self,xmin=None,xmax=None,ymin=None,ymax=None,yerr_min=None,yerr_max=None)
         reset_cuts()
         summary()
-        
+        prepare_data()
+        get_bestfit_curve(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5,x_th=None)
+        get_bestfit_amplitude(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5)
+        get_meanmag(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5)
+
     functions (data processing):
-        periodogram(p_min,p_max,N,method,xdata=None,ydata=None,yerr_data=None,plot=False)
-        get_period()
-        get_period_multi(N,FAR_max=1e-3)
-        amplitude_spectrum(p_min,p_max,N,method,plot=False)
+        periodogram(self,p_min=0.1,p_max=4,custom_periods=None,N=None,method='fast',x=None,y=None,yerr=None,plot=False,multiprocessing=True,Nterms=5,N0=5,model='Fourier',raise_warnings=True,**kwargs)
+        get_period(self,p_min=0.1,p_max=4,x=None,y=None,yerr=None,Nterms=5,method='fast',model='Fourier',peaks_to_test=5,N_peak_test=500,debug=False,force_refine=False,default_err=1e-6,**kwargs)
+        get_period_multi(self,N,FAR_max=1e-3,model='Fourier',Nterms=5,**kwargs)
+        amplitude_spectrum(self,p_min,p_max,N,model='Fourier',grid=10000,plot=False,Nterms=5,**kwargs)
         get_bestfit(N,model='Fourier',period=None,plot=True,return_curve=False,return_params=False)
-        get_meanmag()
-        classify()
+        classify(self)
+        open_widget(self)
+        plot_lc(self,period=None,invert_yaxis=True,**kwargs)
     '''
     
     def __init__(self,data,label='',band=''):
@@ -485,3 +489,14 @@ class photdata:
         ax.errorbar(phase+1,self.y,self.yerr,**kwargs)
         if invert_yaxis:
             ax.invert_yaxis()
+
+    def calc_FAP(self,period,):
+        '''
+        ** THIS FUNCTION IS WORK IN PROGRESS **
+        Calculates the false alarm probability of signal at specified period.
+        Based on VanderPlas+ 2018.
+        inputs:
+            period
+            method: {'range','freq','Baluev'}
+        '''
+        
