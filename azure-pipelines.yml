@@ -6,8 +6,10 @@ schedules:
 - cron: "0 0 * * *" # cron syntax defining a schedule
   displayName: Nightly build # friendly name given to a specific schedule
   branches:
-    include: dev-0.3.0 # which branches the schedule applies to
-    exclude: master # which branches to exclude from the schedule
+    include: 
+    - dev-0.3.0 # which branches the schedule applies to
+    exclude: 
+    - master # which branches to exclude from the schedule
   always: True # whether to always run the pipeline or only if there have been source code changes since the last successful scheduled run. The default is false.
 
 # also, run if there are pushes to these branches
