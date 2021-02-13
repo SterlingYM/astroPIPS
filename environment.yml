@@ -9,3 +9,4 @@ dependencies:
   - scipy
   - astropy
   - matplotlib
+  - numba
