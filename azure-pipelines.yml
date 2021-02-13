@@ -50,7 +50,7 @@ steps:
     condition: not(contains(variables['Build.SourceVersionMessage'],
       '[skip ci]'))
   - script: |
-      coverage run -m unittest discover src
+      coverage run -m unittest discover .
     displayName: 'unit test'
     condition: not(contains(variables['Build.SourceVersionMessage'],
       '[skip ci]'))
