@@ -1,4 +1,6 @@
 # Period-determination and Identification Pipeline Suite (PIPS)
+[![Build Status](https://dev.azure.com/PIPS-developers/PIPS/_apis/build/status/SterlingYM.PIPS?branchName=master)](https://dev.azure.com/PIPS-developers/PIPS/_build/latest?definitionId=1&branchName=master)
+
 A set of pipelines built for Astrophysics photometry data analysis.
 Main use is the period determination of short-period variable stars. This code is under development and this documentation may be outdated.
 
