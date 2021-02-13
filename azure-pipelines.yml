@@ -1,14 +1,25 @@
 # Python package
 # Create and test a Python package on multiple Python versions.
-# Add steps that analyze code, save the dist with the build record,
-# publish to a PyPI-compatible index, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/python
 
+# schedule a nightly run!
+schedules:
+- cron: "0 0 * * *" # cron syntax defining a schedule
+  displayName: Nightly build # friendly name given to a specific schedule
+  branches:
+    include: dev-0.3.0 # which branches the schedule applies to
+    exclude: master # which branches to exclude from the schedule
+  always: True # whether to always run the pipeline or only if there have been source code changes since the last successful scheduled run. The default is false.
+
+# also, run if there are pushes to these branches
 trigger:
-  - master
+- dev-0.3.0
+- master
 
 variables:
   codecov.token: "66ac2722-aebb-4911-8042-becfc9130ad3"
+# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
 
 pool:
   vmImage: 'ubuntu-latest'
