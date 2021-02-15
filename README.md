@@ -10,7 +10,7 @@ PIPS is a pipeline suite designed for analysis of variable lightcurves of astron
 ## Developers
 
 * Head developer: [Yukei S. Murakami](https://www.fromthecalmsea.com) (sterling.astro@berkeley.edu)
-* Developers: [Arjun Savel](https://www.arjunsavel.com)(asavel@umd.edu), [Andrew Hoffman]()(andrewmh@berkeley.edu), [James Sunseri](https://sites.google.com/view/jamessunseri/home)(jamessunseri@berkeley.edu)
+* Developers: [Arjun Savel](https://www.arjunsavel.com) (asavel@umd.edu), [Andrew Hoffman]() (andrew@hoffman.aero), [James Sunseri](https://sites.google.com/view/jamessunseri/home) (jamessunseri@berkeley.edu)
 
 --------------------------
 ## Publications
