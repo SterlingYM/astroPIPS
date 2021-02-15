@@ -9,17 +9,17 @@ PIPS is a pipeline suite designed for analysis of variable lightcurves of astron
 --------------------------
 ## Developers
 
-* Main developer: [Yukei S. Murakami](https://www.fromthecalmsea.com) (sterling.astro@berkeley.edu)
-* Developers: [Arjun Savel](arjunsavel.com)(asavel@umd.edu) [Andrew Hoffman]()(andrewmh@berkeley.edu) [James Sunseri](https://sites.google.com/view/jamessunseri/home)(jamessunseri@berkeley.edu)
+* Head developer: [Yukei S. Murakami](https://www.fromthecalmsea.com) (sterling.astro@berkeley.edu)
+* Developers: [Arjun Savel](https://www.arjunsavel.com)(asavel@umd.edu), [Andrew Hoffman]()(andrewmh@berkeley.edu), [James Sunseri](https://sites.google.com/view/jamessunseri/home)(jamessunseri@berkeley.edu)
 
-
+--------------------------
 ## Publications
 Please cite the following if PIPS is utilized for a scientific project:
 * Hoffman et al 2020
 * Murakami et al (Paper in prep, Arxiv link pending)
 
 
----------------------
+--------------------------
 ## Dependencies
 * python (>=3.7)
 * numpy
@@ -30,7 +30,7 @@ Please cite the following if PIPS is utilized for a scientific project:
 * ~~seaborn~~
 
 
----------------------
+--------------------------
 ## Usage (ver 0.3.0)
 
 1. ```$ mkdir pips_workspace```
