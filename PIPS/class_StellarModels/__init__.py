@@ -107,10 +107,10 @@ class Cacciari2005(StellarModels):
     # period = self.period
 
     ###########################################################################
-    #                               RRc Stars                                 #
+    #                               RRab Stars                                 #
     ###########################################################################
 
-    #Values help(calc_F_He_C)
+    #Values 
 
     def calc_Fe_H_ab(self):
         #Metallicity
@@ -200,7 +200,7 @@ class Cacciari2005(StellarModels):
         self.M_v_err = np.sqrt(((- 0.961/np.log(10))*(self.period_err/self.period))**2 + (-0.044*self.phi21_err)**2 +  (-4.447*self.C_4_err)**2)
 
     def calc_error_log_L_c(self):
-        self.L_err = (((0.961/2.5)/np.log(10))*(self.period_err/self.period))**2 + (- 0.044*self.phi21_err/2.5)**2 + (-4.447*self.C_4_err/2.5)**2
+        self.log_L_err = (((0.961/2.5)/np.log(10))*(self.period_err/self.period))**2 + (- 0.044*self.phi21_err/2.5)**2 + (-4.447*self.C_4_err/2.5)**2
 
     def calc_error_log_mass_c(self):
         self.log_M_err = np.sqrt(((0.52/np.log(10))*(self.period_err/self.period))**2 + (-0.11*self.phi31_err)**2)
@@ -214,3 +214,65 @@ class Cacciari2005(StellarModels):
 
     def calc_error_log_surface_gravity(self):
         self.log_g_err = np.sqrt(self.log_M_err**2  + self.log_L_err**2 + (4*self.log_T_eff_err)**2)
+        
+    ###########################################################################
+    #                            Computes All Values                          #
+    ###########################################################################
+    
+    def calc_all_vals(self,star_type):
+        """"This function returns none. It should add several traits to your StellarModel Object:
+        
+        TRAITS
+        
+        self.Fe_H
+        self.BV_0 (RRab only)
+        self.log_T_eff
+        self.M_v
+        self.log_L
+        self.log_M
+        self.Fe_H_err
+        self.BV_0_err (RRab only)
+        self.log_T_eff_err
+        self.M_v_err
+        self.log_L_err
+        self.log_M_err
+        """
+        if star_type == 'RRab':
+            #Values
+            self.calc_Fe_H_ab()
+            self.calc_BV_0_ab()
+            self.calc_log_T_eff_type_ab()
+            self.calc_M_v_ab()
+            self.calc_log_L_ab()
+            self.calc_log_mass_ab()
+            self.calc_log_surface_gravity()
+            
+            #Errors
+            self.calc_error_Fe_H_ab()
+            self.calc_error_BV_0_ab()
+            self.calc_error_log_T_eff_type_ab()
+            self.calc_error_M_v_ab()
+            self.calc_error_log_L_ab()
+            self.calc_error_log_mass_ab()
+            self.calc_error_log_surface_gravity()
+            
+        elif star_type == 'RRc':
+            #Values
+            self.calc_Fe_H_c()
+            self.calc_log_T_eff_type_c()
+            self.calc_M_v_c()
+            self.calc_log_L_c()
+            self.calc_log_mass_c()
+            self.calc_log_surface_gravity()
+            
+            #Errors
+            self.calc_error_Fe_H_c()
+            self.calc_error_log_T_eff_type_c()
+            self.calc_error_M_v_c()
+            self.calc_error_log_L_c()
+            self.calc_error_log_mass_c()
+            self.calc_error_log_surface_gravity()
+            
+        else:
+            print("""Not a valid input. star_type must be a string of the form 'RRab' or 'RRc' in order to work""")
+    
