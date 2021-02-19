@@ -33,22 +33,27 @@ Please cite the following if PIPS is utilized for a scientific project:
 --------------------------
 ## Usage (ver 0.3.0)
 
-1. ```$ mkdir pips_workspace```
-2. ```$ cd pips_workspace```
-3. ```$ git clone https://github.com/SterlingYM/PIPS```
+1. ```$ git clone https://github.com/SterlingYM/PIPS```
+2. ```$ cd PIPS```
 4. ```$ jupyter notebook```
 5. Start a new Python notebook. In a jupyter cell, run the following:
 ```python
 import PIPS
-data_V   = PIPS.data_readin_LPP('getPeriod2/sample_data/000.dat',filter='V')
-phot_obj = PIPS.photdata(data_V)
 
-filtered_data = phot_obj.phot_err_cut()
-filtered_data.detect_period()
-# or, as a much quicker method when uncertainty of period is not needed,
-# filtered_data.detect_period_quick() 
+# data preparation -- create [time,mag,mag_err] list
+data = PIPS.data_readin_LPP('sample_data/005.dat',filter='V')
+phot_obj = PIPS.photdata(data)
 
-print(filtered_data.period)
+# period detection
+star.get_period(multiprocessing=False)
+
+# generate best-fit light curve
+x_th,y_th = star.get_bestfit_curve()
+
+# plot light curve
+star.plot_lc()
+plt.plot(x_th/star.period,y_th,c='yellowgreen',lw=3,alpha=0.7) # x-axis normalized to unitless phase
+plt.plot(x_th/star.period+1,y_th,c='yellowgreen',lw=3,alpha=0.7)
 ```
 
 Sample data credit: UCB SNe Search Team (Filippenko Group)
