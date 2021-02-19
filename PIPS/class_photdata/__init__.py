@@ -499,4 +499,25 @@ class photdata:
             period
             method: {'range','freq','Baluev'}
         '''
+ 
+    def get_epoch_offset(self,period=None,x=None,y=None,yerr=None,model='Fourier',N=1000,Nterms=5,**kwargs):
+        '''
+        TODO: define the 'maxima': is it the minimum in magnitude or maximum in any value? current implementation -> 'magnitude' interpretation only
+        inputs:
+            N: number of samples across the phase (single period). The peak should have width W >> P/1000.
+        '''
+        # use default values if data is not explicitly given
+        x,y,yerr = self.prepare_data(x,y,yerr)
+
+        # use automatically determined period if period is not explicitly given
+        if period == None:
+            if self.period == None:
+                period, _ = self.get_period(**kwargs)
+            period = self.period
         
+        # get the phase offset (phase of maxima for raw data)
+        x_th = np.linspace(0,period,N)
+        _, y_th = self.get_bestfit_curve(x=x,y=y,yerr=yerr,period=period,model=model,Nterms=Nterms,x_th=x_th)
+        epoch_offset = x_th[np.argmin(y_th)]
+        self.epoch_offset = epoch_offset
+        return epoch_offset
