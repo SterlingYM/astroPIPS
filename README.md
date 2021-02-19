@@ -18,7 +18,7 @@ PIPS is a pipeline suite designed for analysis of variable lightcurves of astron
 --------------------------
 ## Publications
 Please cite the following if PIPS is utilized for a scientific project:
-* [Hoffman et al. 2020](https://doi.org/10.1093/mnras/stab010) (arxiv: [2008.09778](https://arxiv.org/abs/2008.09778))
+* Hoffman et al. 2021 [![DOI:10.1093/mnras/stab010](https://zenodo.org/badge/DOI/10.1093/mnras/stab010.svg)](https://doi.org/10.1093/mnras/stab010) (arxiv: [2008.09778](https://arxiv.org/abs/2008.09778))
 * Murakami et al. (Paper in prep, Arxiv link pending)
 
 
