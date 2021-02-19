@@ -167,6 +167,12 @@ class photdata:
         '''
         # prepare data
         x,y,yerr = self.prepare_data(x,y,yerr)
+        
+        # use automatically determined period if period is not explicitly given
+        if period == None:
+            if self.period == None:
+                period, _ = self.get_period(**kwargs)
+            period = self.period
 
         # model-dependent options
         MODEL_bestfit = {
