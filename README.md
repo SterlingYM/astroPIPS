@@ -5,7 +5,8 @@ PIPS is a pipeline suite designed for analysis of variable lightcurves of astron
 
 (last edit: February 15th 2021) 
 
-![](sample_output.png)
+![](sample_lightcurve.png)
+
 --------------------------
 ## Developers
 
