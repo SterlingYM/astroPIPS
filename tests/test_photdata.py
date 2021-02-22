@@ -7,6 +7,7 @@ class TestPhotdata(unittest.TestCase):
         try:
             object = photdata()
             instantiated = True
-        except:
+        except Exception as e:
+            print(e)
             instantiated = False
         self.assertTrue(instantiated)
