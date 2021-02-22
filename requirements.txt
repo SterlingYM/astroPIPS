@@ -1,6 +1,5 @@
 numpy
 scipy
 matplotlib
-time
 astropy
 numba

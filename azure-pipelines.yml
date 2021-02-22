@@ -1,36 +1,62 @@
 # Python package
 # Create and test a Python package on multiple Python versions.
+
+# schedule a nightly run!
+schedules:
+- cron: "0 0 * * *" # cron syntax defining a schedule
+  displayName: Nightly build # friendly name given to a specific schedule
+  branches:
+    include: 
+    - dev-0.3.0 # which branches the schedule applies to
+    exclude: 
+    - master # which branches to exclude from the schedule
+  always: True # whether to always run the pipeline or only if there have been source code changes since the last successful scheduled run. The default is false.
+
+# also, run if there are pushes to these branches
+trigger:
+- dev-0.3.0
+- master
+
+variables:
+  codecov.token: "66ac2722-aebb-4911-8042-becfc9130ad3"
 # Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/python
 
-trigger:
-- main
 
 pool:
   vmImage: 'ubuntu-latest'
 strategy:
   matrix:
-    Python27:
-      python.version: '2.7'
-    Python35:
-      python.version: '3.5'
-    Python36:
-      python.version: '3.6'
-    Python37:
-      python.version: '3.7'
+    linux:
+      vm_Image: "Ubuntu-16.04"
+      python.version: "3.7"
+    mac:
+      vm_Image: "macOS-10.14"
+      python.version: "3.7"
+    windows:
+      vm_Image: "vs2017-win2016"
+      python.version: "3.7"
 
 steps:
-- task: UsePythonVersion@0
-  inputs:
-    versionSpec: '$(python.version)'
-  displayName: 'Use Python $(python.version)'
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
 
-- script: |
-    python -m pip install --upgrade pip
-    pip install -r requirements.txt
-  displayName: 'Install dependencies'
-
-- script: |
-    pip install pytest pytest-azurepipelines
-    pytest
-  displayName: 'pytest'
+  - script: |
+      python -m pip install --upgrade pip
+      # python3 -m pip install -e .
+      pip install -r requirements.txt
+      pip3 install codecov
+    displayName: 'Install dependencies'
+    condition: not(contains(variables['Build.SourceVersionMessage'],
+      '[skip ci]'))
+  - script: |
+      coverage run -m unittest discover tests
+    displayName: 'unit test'
+    condition: not(contains(variables['Build.SourceVersionMessage'],
+      '[skip ci]'))
+  - script: |
+      bash <(curl -s https://codecov.io/bash)
+    displayName: 'send to codecov'
+    condition: not(contains(variables['Build.SourceVersionMessage'],
+      '[skip ci]'))

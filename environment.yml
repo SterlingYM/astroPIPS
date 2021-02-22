@@ -8,7 +8,5 @@ dependencies:
   - numpy
   - scipy
   - astropy
-  - time
   - matplotlib
   - numba
-  
