@@ -4,3 +4,4 @@ coverage:
   range: "40...90"
   ignore:
     - "*.ipynb"
+    - "tests/*
