@@ -3,7 +3,7 @@ import numpy as np
 from PIPS import photdata
 
 class TestPhotdata(unittest.TestCase):
-    data = [[1,2,3], [4,5,6], [7,8,9]]
+    data = np.array([[1,2,3], [4,5,6], [7,8,9]])
 
     def test_photdata_initialization(self):
         try:
