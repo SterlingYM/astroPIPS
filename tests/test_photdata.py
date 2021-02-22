@@ -55,32 +55,32 @@ class TestPhotdata(unittest.TestCase):
     def test_cut_xmin(self):
         object = photdata(self.data)
         object.cut(xmin=2)
-        self.assertTrue(np.all(photdata.x >= 2))
+        self.assertTrue(np.all(object.x >= 2))
     
     def test_cut_x_max(self):
         object = photdata(self.data)
         object.cut(xmax=2)
-        self.assertTrue(np.all(photdata.x <= 2))
+        self.assertTrue(np.all(object.x <= 2))
         
     def test_cut_ymin(self):
         object = photdata(self.data)
         object.cut(ymin=5)
-        self.assertTrue(np.all(photdata.y >= 5))
+        self.assertTrue(np.all(object.y >= 5))
         
     def test_cut_ymax(self):
         object = photdata(self.data)
         object.cut(ymax=5)
-        self.assertTrue(np.all(photdata.y <= 5))
+        self.assertTrue(np.all(object.y <= 5))
         
     def test_cut_yerrmin(self):
         object = photdata(self.data)
         object.cut(yerr_min=8)
-        self.assertTrue(np.all(photdata.y >= 8))
+        self.assertTrue(np.all(object.y >= 8))
         
     def test_cut_yerrmax(self):
         object = photdata(self.data)
         object.cut(yerr_max=8)
-        self.assertTrue(np.all(photdata.y <= 8))
+        self.assertTrue(np.all(object.y <= 8))
         
                         
     
