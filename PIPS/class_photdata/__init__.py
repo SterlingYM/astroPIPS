@@ -8,6 +8,7 @@ import time
 from ..periodogram.custom import periodogram_custom
 from ..periodogram.linalg import periodogram_fast
 from ..periodogram.models.Fourier import fourier,get_bestfit_Fourier
+from ..periodogram.models.Gaussian import gaussian,get_bestfit_gaussian
 
 class photdata:
     '''
@@ -70,6 +71,16 @@ class photdata:
     ##############
     # utilities
     ##############
+    def check_model(input_model, model_dict):
+        """
+        Checks that a given input model is available.
+        input_model : (str) user-input model.
+        model_dict : (dict) dictionary containing model strings as keys and arbitrary functions as values.
+        """
+        if input_model not in model_dict.keys():
+            raise ValueError("""Input model is not available. Currently available models \
+                                include 'Gaussian' and 'Fourier'.""")
+        
     def cut(self,xmin=None,xmax=None,ymin=None,ymax=None,yerr_min=None,yerr_max=None):
         '''
         Cuts data based on given min-max ranges.
@@ -176,12 +187,14 @@ class photdata:
 
         # model-dependent options
         MODEL_bestfit = {
-            'Fourier': get_bestfit_Fourier
+            'Fourier': get_bestfit_Fourier,
+            'Gaussian': get_bestfit_gaussian
         }
         MODELS = {
-            'Fourier': fourier
+            'Fourier': fourier,
+            'Gaussian': gaussian
         }
-
+        self.check_model(model, MODELS)
         # 
         popt = MODEL_bestfit[model](x,y,yerr,period,Nterms,return_yfit=False,return_params=True)
         
@@ -263,11 +276,15 @@ class photdata:
         '''
         # model-dependent options
         MODEL_helpers = {
-            'Fourier': lambda x,*params: fourier(x,params[0],Nterms,np.array(params[1:]))
+            'Fourier': lambda x,*params: fourier(x,params[0],Nterms,np.array(params[1:])),
+            'Gaussian': lambda x,*params: gaussian(x,params[0],Nterms,np.array(params[1:])),
         }
         MODEL_bestfit = {
-            'Fourier': get_bestfit_Fourier
+            'Fourier': get_bestfit_Fourier,
+            'Gaussian': get_bestfit_gaussian
         }
+        
+        self.check_model(model, MODEL_bestfit)
 
         # debug mode option outputs the progress 
         # (TODO: change this to verbosity - or logger?)
@@ -403,9 +420,11 @@ class photdata:
 
         # model-dependent options
         MODEL_bestfit = {
-            'Fourier': get_bestfit_Fourier
+            'Fourier': get_bestfit_Fourier,
+            'Gaussian': get_bestfit_gaussian
         }
-
+        self.check_model(model, MODEL_bestfit)
+        
         # data prep
         x_prewhitened = self.x.copy()
         y_prewhitened = self.y.copy()
