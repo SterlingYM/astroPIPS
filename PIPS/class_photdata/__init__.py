@@ -8,6 +8,7 @@ import time
 from ..periodogram.custom import periodogram_custom
 from ..periodogram.linalg import periodogram_fast
 from ..periodogram.models.Fourier import fourier,get_bestfit_Fourier
+from ..periodogram.models.Gaussian import gaussian,get_bestfit_gaussian
 
 class photdata:
     '''
@@ -70,6 +71,16 @@ class photdata:
     ##############
     # utilities
     ##############
+    def check_model(input_model, model_dict):
+        """
+        Checks that a given input model is available.
+        input_model : (str) user-input model.
+        model_dict : (dict) dictionary containing model strings as keys and arbitrary functions as values.
+        """
+        if input_model not in model_dict.keys():
+            raise ValueError("""Input model is not available. Currently available models \
+                                include 'Gaussian' and 'Fourier'.""")
+        
     def cut(self,xmin=None,xmax=None,ymin=None,ymax=None,yerr_min=None,yerr_max=None):
         '''
         Cuts data based on given min-max ranges.
@@ -167,15 +178,23 @@ class photdata:
         '''
         # prepare data
         x,y,yerr = self.prepare_data(x,y,yerr)
+        
+        # use automatically determined period if period is not explicitly given
+        if period == None:
+            if self.period == None:
+                period, _ = self.get_period(**kwargs)
+            period = self.period
 
         # model-dependent options
         MODEL_bestfit = {
-            'Fourier': get_bestfit_Fourier
+            'Fourier': get_bestfit_Fourier,
+            'Gaussian': get_bestfit_gaussian
         }
         MODELS = {
-            'Fourier': fourier
+            'Fourier': fourier,
+            'Gaussian': gaussian
         }
-
+        self.check_model(model, MODELS)
         # 
         popt = MODEL_bestfit[model](x,y,yerr,period,Nterms,return_yfit=False,return_params=True)
         
@@ -257,11 +276,15 @@ class photdata:
         '''
         # model-dependent options
         MODEL_helpers = {
-            'Fourier': lambda x,*params: fourier(x,params[0],Nterms,np.array(params[1:]))
+            'Fourier': lambda x,*params: fourier(x,params[0],Nterms,np.array(params[1:])),
+            'Gaussian': lambda x,*params: gaussian(x,params[0],Nterms,np.array(params[1:])),
         }
         MODEL_bestfit = {
-            'Fourier': get_bestfit_Fourier
+            'Fourier': get_bestfit_Fourier,
+            'Gaussian': get_bestfit_gaussian
         }
+        
+        self.check_model(model, MODEL_bestfit)
 
         # debug mode option outputs the progress 
         # (TODO: change this to verbosity - or logger?)
@@ -397,9 +420,11 @@ class photdata:
 
         # model-dependent options
         MODEL_bestfit = {
-            'Fourier': get_bestfit_Fourier
+            'Fourier': get_bestfit_Fourier,
+            'Gaussian': get_bestfit_gaussian
         }
-
+        self.check_model(model, MODEL_bestfit)
+        
         # data prep
         x_prewhitened = self.x.copy()
         y_prewhitened = self.y.copy()
@@ -499,4 +524,25 @@ class photdata:
             period
             method: {'range','freq','Baluev'}
         '''
+ 
+    def get_epoch_offset(self,period=None,x=None,y=None,yerr=None,model='Fourier',N=1000,Nterms=5,**kwargs):
+        '''
+        TODO: define the 'maxima': is it the minimum in magnitude or maximum in any value? current implementation -> 'magnitude' interpretation only
+        inputs:
+            N: number of samples across the phase (single period). The peak should have width W >> P/1000.
+        '''
+        # use default values if data is not explicitly given
+        x,y,yerr = self.prepare_data(x,y,yerr)
+
+        # use automatically determined period if period is not explicitly given
+        if period == None:
+            if self.period == None:
+                period, _ = self.get_period(**kwargs)
+            period = self.period
         
+        # get the phase offset (phase of maxima for raw data)
+        x_th = np.linspace(0,period,N)
+        _, y_th = self.get_bestfit_curve(x=x,y=y,yerr=yerr,period=period,model=model,Nterms=Nterms,x_th=x_th)
+        epoch_offset = x_th[np.argmin(y_th)]
+        self.epoch_offset = epoch_offset
+        return epoch_offset
