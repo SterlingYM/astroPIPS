@@ -5,7 +5,8 @@ class TestPhotdata(unittest.TestCase):
 
     def test_photdata_initialization(self):
         try:
-            object = photdata()
+            data = [1,2,3]
+            object = photdata(data)
             instantiated = True
         except Exception as e:
             print(e)
