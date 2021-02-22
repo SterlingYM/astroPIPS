@@ -1,5 +1,5 @@
 import unittest
-from . import photdata
+from PIPS import photdata
 
 class TestPhotdata(unittest.TestCase):
 
