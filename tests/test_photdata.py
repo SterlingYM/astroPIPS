@@ -75,12 +75,12 @@ class TestPhotdata(unittest.TestCase):
     def test_cut_yerrmin(self):
         object = photdata(self.data)
         object.cut(yerr_min=8)
-        self.assertTrue(np.all(object.y >= 8))
+        self.assertTrue(np.all(object.yerr >= 8))
         
     def test_cut_yerrmax(self):
         object = photdata(self.data)
         object.cut(yerr_max=8)
-        self.assertTrue(np.all(object.y <= 8))
+        self.assertTrue(np.all(object.yerr <= 8))
         
                         
     
