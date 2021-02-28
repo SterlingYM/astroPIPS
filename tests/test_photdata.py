@@ -95,7 +95,7 @@ class TestPhotdataIntegration(unittest.TestCase):
         star = photdata([x, y, yerr])
         periods,power = star.periodogram(p_min=0.1,p_max=10,multiprocessing=False)
         max_power = power.max()
-        self.assertTrue(np.isclose(max_power, 2* np.pi, atol=.001))
+        self.assertTrue(np.all(np.isclose(periods[power==power.max()], 2* np.pi, atol=.001)))
                         
                         
                     
