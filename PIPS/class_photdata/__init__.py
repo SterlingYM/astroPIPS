@@ -66,6 +66,7 @@ class photdata:
         self.label = label
         self.band = ''
         self.epoch = None
+        self.epoch_offset = None
         self.meanmag = None # based on best-fit function: requires period
         
     ##############
