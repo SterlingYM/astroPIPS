@@ -63,6 +63,7 @@ class photdata:
         self.period_err = None
         self.amplitude = None
         self.amplitude_err = None
+        self.offset_epoch = None
         self.label = label
         self.band = ''
         self.epoch = None
