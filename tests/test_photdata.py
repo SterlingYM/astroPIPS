@@ -110,6 +110,24 @@ class TestPhotdataIntegration(unittest.TestCase):
         output_per, output_err = star.get_period()
         self.assertTrue(np.isclose(output_per, expected_per) and np.isclose(output_err, expected_err))
         
+    def test_gaussian_fourier_convergence(self):
+        """
+        The Gaussian and Fourier models should produce similar answers
+        for simple data.
+        """
+        x = np.linspace(0, 100, 1000)
+        y = np.sin(x/2)
+        yerr = np.ones_like(y) * .01
+
+        star = photdata([x, y, yerr])
+        
+        gauss_period, guass_err =  star.get_period(
+                                                    model='Gaussian', 
+                                                    N_peak_test=1000, p_min=0.1,p_max=20)
+        fourier_period, fourier_err = star.get_period(model='Fourier', N_peak_test=1000, p_min=0.1,p_max=20)
+        
+        self.assertTrue(np.isclose(gauss_period, fourier_period))
+
         
                         
                         
