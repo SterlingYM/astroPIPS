@@ -71,7 +71,7 @@ class photdata:
     ##############
     # utilities
     ##############
-    def check_model(input_model, model_dict):
+    def check_model(self, input_model, model_dict):
         """
         Checks that a given input model is available.
         input_model : (str) user-input model.
