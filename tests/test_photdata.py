@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 from PIPS import photdata
 
-class TestPhotdata(unittest.TestCase):
+class TestPhotdataUnit(unittest.TestCase):
     data = np.array([[1,2,3], [4,5,6], [7,8,9]])
 
     def test_photdata_initialization(self):
@@ -85,6 +85,17 @@ class TestPhotdata(unittest.TestCase):
                         
     
                         
+class TestPhotdataIntegration(unittest.TestCase):
+    
+    def test_simple_sine(self):
+        x = np.linspace(0, 100, 1000)
+        y = np.sin(x)
+        yerr = np.ones_like(y) * .01
+
+        star = PIPS.photdata([x, y, yerr])
+        periods,power = star.periodogram(p_min=0.1,p_max=10,multiprocessing=False)
+        max_power = power.max()
+        self.assertTrue(np.isclose(max_power, 2* np.pi, atol=.001))
                         
                         
                     
