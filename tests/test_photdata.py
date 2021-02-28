@@ -92,7 +92,7 @@ class TestPhotdataIntegration(unittest.TestCase):
         y = np.sin(x)
         yerr = np.ones_like(y) * .01
 
-        star = PIPS.photdata([x, y, yerr])
+        star = photdata([x, y, yerr])
         periods,power = star.periodogram(p_min=0.1,p_max=10,multiprocessing=False)
         max_power = power.max()
         self.assertTrue(np.isclose(max_power, 2* np.pi, atol=.001))
