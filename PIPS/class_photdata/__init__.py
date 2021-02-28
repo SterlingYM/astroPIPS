@@ -467,6 +467,8 @@ class photdata:
 
         periods,period_errors,amplitudes = self.get_period_multi(
             N,
+            p_min=p_min,
+            p_max=p_max,
             model=model,
             Nterms=Nterms,
             **kwargs)
