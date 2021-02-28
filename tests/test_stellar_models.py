@@ -70,7 +70,7 @@ class TestCacciari2005(unittest.TestCase):
         
         obj  = PIPS.Cacciari2005(star)
         print_output = io.StringIO()                  
-        sys.stdout = capturedOutput                     
+        sys.stdout = print_output                     
         obj.calc_all_vals('')                                     
         sys.stdout = sys.__stdout__                     
 
