@@ -32,4 +32,4 @@ from multiprocessing import Pool
 from .utils.connect_LPP import data_readin_LPP
 from .class_photdata import photdata
 from .class_StellarModels import *
-from .class_visualize import visualize
+# from .class_visualize import visualize
