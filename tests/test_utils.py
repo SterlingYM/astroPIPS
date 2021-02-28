@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
-from PIPS import photdata
+import PIPS
+
 
 class TestLPP(unittest.TestCase):
     
