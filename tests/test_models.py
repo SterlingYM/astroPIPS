@@ -3,7 +3,7 @@ import numpy as np
 from PIPS import photdata
 import PIPS
 import os
-os.environ['NUMBA_DISABLE_JIT'] = 1
+os.environ['NUMBA_DISABLE_JIT'] = '1'
 
 class TestFourier(unittest.TestCase):
     
