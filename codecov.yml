@@ -5,3 +5,4 @@ coverage:
   ignore:
     - "*.ipynb"
     - "./tests/"
+    - "./setup.py"
