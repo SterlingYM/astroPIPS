@@ -93,5 +93,5 @@ class TestPeriodograms(unittest.TestCase):
         periods, power_custom_periods = PIPS.periodogram.custom.periodogram_custom(None,None,100, x, y, yerr, Nterms=1, multiprocessing=True,
                                                                                   custom_periods=custom_periods)
         periods, power = PIPS.periodogram.custom.periodogram_custom(0.1,10,100, x, y, yerr, Nterms=1, multiprocessing=True)
-        np.testing.assert_allclose(power_fast, power_cust, atol=1e-3)
+        np.testing.assert_allclose(power, power_cust, atol=1e-11)
         
