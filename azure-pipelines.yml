@@ -51,6 +51,7 @@ steps:
     condition: not(contains(variables['Build.SourceVersionMessage'],
       '[skip ci]'))
   - script: |
+      export NUMBA_DISABLE_JIT='1'
       coverage run -m unittest discover tests
     displayName: 'unit test'
     condition: not(contains(variables['Build.SourceVersionMessage'],
