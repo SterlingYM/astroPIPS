@@ -4,7 +4,7 @@ PIPS 0.3.0
 ---------------------------------------------
 Developers: Y. Murakami, A. Hoffman, J.Sunseri, A. Savel
 Contact: Yukei Murakami (sterling.astro@berkeley.edu)
-License: TBD
+License: MIT
 ---------------------------------------------
 Processes photometric data for variable stars.
 ---------------------------------------------
@@ -33,3 +33,13 @@ from .utils.connect_LPP import data_readin_LPP
 from .class_photdata import photdata
 from .class_StellarModels import *
 # from .class_visualize import visualize
+
+
+__uri__ = "https://PIPS.readthedocs.io" # tbd, may change
+__author__ = "Y. Murakami, A. Hoffman, J.Sunseri, A. Savel"
+__maintainer__ = "Y. Murakami"
+__email__ = "sterling.astro@berkeley.edu"
+__license__ = "MIT"
+__version__ = "0.3.0"
+__release__ = "0.3.0-alpha"
+__description__ = "Processes photometric data for variable stars"
