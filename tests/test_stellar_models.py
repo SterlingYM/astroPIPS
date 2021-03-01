@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 import PIPS
+import sys
 import io
 
 
@@ -59,7 +60,7 @@ class TestStellarInit(unittest.TestCase):
 class TestCacciari2005(unittest.TestCase):
     
     def test_capture_correct_stellar_type(self):
-        correct_string = """Not a valid input. star_type must be a string of the form 'RRab' or 'RRc' in order to work"""
+        correct_string = """Not a valid input. star_type must be a string of the form 'RRab' or 'RRc' in order to work\n"""
         x = np.linspace(0, 100, 1000)
         y = np.sin(x/2)
         yerr = np.ones_like(y) * .01
@@ -70,7 +71,7 @@ class TestCacciari2005(unittest.TestCase):
         
         obj  = PIPS.Cacciari2005(star)
         print_output = io.StringIO()                  
-        sys.stdout = capturedOutput                     
+        sys.stdout = print_output                     
         obj.calc_all_vals('')                                     
         sys.stdout = sys.__stdout__                     
 

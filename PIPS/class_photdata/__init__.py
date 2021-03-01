@@ -66,12 +66,13 @@ class photdata:
         self.label = label
         self.band = ''
         self.epoch = None
+        self.epoch_offset = None
         self.meanmag = None # based on best-fit function: requires period
         
     ##############
     # utilities
     ##############
-    def check_model(input_model, model_dict):
+    def check_model(self, input_model, model_dict):
         """
         Checks that a given input model is available.
         input_model : (str) user-input model.
@@ -162,6 +163,7 @@ class photdata:
         prints out the summary.
         TODO: Jupyter widget?
         '''
+        raise NotImplementedError
 
     def prepare_data(self,x,y,yerr):
         if (x is None) and (y is None) and (yerr is None):
@@ -467,6 +469,8 @@ class photdata:
 
         periods,period_errors,amplitudes = self.get_period_multi(
             N,
+            p_min=p_min,
+            p_max=p_max,
             model=model,
             Nterms=Nterms,
             **kwargs)
@@ -487,9 +491,10 @@ class photdata:
         TODO: this is going to be a big function and requires a lot of work!
         '''
         # self.type = 'RRab'
+        raise NotImplementedError
 
     def open_widget(self):
-        print('in development')
+        raise NotImplementedError('in development')
 
     def plot_lc(self,period=None,invert_yaxis=True,**kwargs):
         '''
@@ -524,6 +529,7 @@ class photdata:
             period
             method: {'range','freq','Baluev'}
         '''
+        raise NotImplementedError
  
     def get_epoch_offset(self,period=None,x=None,y=None,yerr=None,model='Fourier',N=1000,Nterms=5,**kwargs):
         '''
