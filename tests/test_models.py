@@ -49,7 +49,26 @@ class TestFourier(unittest.TestCase):
         y_fit = PIPS.periodogram.models.Fourier.get_bestfit_Fourier(x,y,yerr,period,Nterms,return_yfit=True,return_params=False,
                                 debug=True)
         
-        np.testing.assert_allclose(y_fit - y, np.zeros(len(y)))
+        np.testing.assert_allclose(y_fit, y)
+        
+        
+class TestGaussian(unittest.TestCase):
+    
+    def test_somewhat_close(self):
+        """
+        Gaussian fit should somewhat fit the sine curve.
+        """
+        x = np.linspace(0, 100, 1000)
+        y = np.sin(x/2)
+        yerr = np.ones_like(y) * .01
+
+        period = 4 * np.pi
+
+        Nterms = 1
+
+        y_fit = PIPS.periodogram.models.Gaussian.get_bestfit_gaussian(x,y,yerr,period,Nterms,return_yfit=True,return_params=False,
+                                debug=True)
+        np.testing.assert_allclose(y, y_fit, atol=.8)
         
         
         
