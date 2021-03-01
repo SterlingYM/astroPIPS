@@ -121,7 +121,7 @@ class TestPhotdataUnit(unittest.TestCase):
         np.testing.assert_array_equal([object.x, object.y, object.yerr], self.data)
         
     # try second cuts
-     def test_second_cut_xmin(self):
+    def test_second_cut_xmin(self):
         object = photdata(self.data)
         object.cut(xmin=2)
         object.cut(xmin=3)
