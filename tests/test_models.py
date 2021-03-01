@@ -15,7 +15,7 @@ class TestFourier(unittest.TestCase):
         x = np.linspace(0, 5, 400) # larger than 1 period by far
         Nterms = 0
         period = 1 # arbitrary
-        y = PIPS.periodogram.models.Fourier.fourier(x, period, Nterms, params) #
+        y = PIPS.periodogram.models.Fourier.fourier(x, period, Nterms, params, debug=True) #
         self.assertTrue(np.all(y==params[0]))
         
     def test_one_term(self):
