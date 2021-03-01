@@ -63,5 +63,18 @@ class TestGaussian(unittest.TestCase):
                                 debug=True)
         np.testing.assert_allclose(y, y_fit, atol=.8)
         
-        
+
+class TestPeriodograms(unittest.TestCase):
+    def test_periodogram_convergence(self):
+        """
+        both periodogram methods should roughly line up!
+        """
+        x = np.linspace(0, 100, 1000)
+        y = np.sin(x)
+        yerr = np.ones_like(y) * .01
+
+        star = PIPS.photdata([x, y, yerr])
+        periods, power_cust = PIPS.periodogram.custom.periodogram_custom(0.1,10,100, x, y, yerr, Nterms=1, multiprocessing=False)
+        periods, power_fast = PIPS.periodogram.linalg.periodogram_fast(0.1,10,100, x, y, yerr, Nterms=1, multiprocessing=False)
+        np.testing.assert_allclose(power_fast, power_cust, atol=1e-3)
         
