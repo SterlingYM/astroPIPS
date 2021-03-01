@@ -11,7 +11,6 @@ class TestFourier(unittest.TestCase):
         """
         Should just be a flat line.
         """
-        
         params = np.array([2,1,2, 2]) # arbitrary params
         x = np.linspace(0, 5, 400) # larger than 1 period by far
         Nterms = 0
