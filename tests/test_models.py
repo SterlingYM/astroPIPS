@@ -3,13 +3,6 @@ import numpy as np
 from PIPS import photdata
 import PIPS
 import os
-os.environ['NUMBA_DISABLE_JIT'] = '1'
-
-# maybe redine @njit here... do it in a try/ except and don't install numba for 
-# try:
-    import numba
-except ImportError:
-    pass
 
 
 class TestFourier(unittest.TestCase):
