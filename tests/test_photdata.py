@@ -119,6 +119,43 @@ class TestPhotdataUnit(unittest.TestCase):
         object.cut(yerr_min=8)
         object.reset_cuts()
         np.testing.assert_array_equal([object.x, object.y, object.yerr], self.data)
+        
+    # try second cuts
+     def test_second_cut_xmin(self):
+        object = photdata(self.data)
+        object.cut(xmin=2)
+        object.cut(xmin=3)
+        self.assertTrue(np.all(object.x >= 3))
+    
+    def test_second_cut_x_max(self):
+        object = photdata(self.data)
+        object.cut(xmax=2)
+        object.cut(xmax=1)
+        self.assertTrue(np.all(object.x <= 1))
+        
+    def test_second_cut_ymin(self):
+        object = photdata(self.data)
+        object.cut(ymin=5)
+        object.cut(ymin=6)
+        self.assertTrue(np.all(object.y >= 6))
+        
+    def test_second_cut_ymax(self):
+        object = photdata(self.data)
+        object.cut(ymax=5)
+        object.cut(ymax=4)
+        self.assertTrue(np.all(object.y <= 4))
+        
+    def test_second_cut_yerrmin(self):
+        object = photdata(self.data)
+        object.cut(yerr_min=8)
+        object.cut(yerr_min=9)
+        self.assertTrue(np.all(object.yerr >= 9))
+        
+    def test_second_cut_yerrmax(self):
+        object = photdata(self.data)
+        object.cut(yerr_max=8)
+        object.cut(yerr_max=7)
+        self.assertTrue(np.all(object.yerr <= 7))
                         
     
                         
