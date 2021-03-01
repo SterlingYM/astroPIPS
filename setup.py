@@ -13,7 +13,7 @@ NAME = "simmer"
 PACKAGES = find_packages(where=".")
 META_PATH = os.path.join("PIPS", "__init__.py")
 CLASSIFIERS = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Natural Language :: English",
