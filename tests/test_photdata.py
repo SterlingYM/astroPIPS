@@ -119,9 +119,6 @@ class TestPhotdataUnit(unittest.TestCase):
         object.cut(yerr_min=8)
         object.reset_cuts()
         np.testing.assert_array_equal([object.x, object.y, object.yerr], self.data)
-        
-        
-        
                         
     
                         
@@ -195,7 +192,7 @@ class TestAmplitudeSpectrum(unittest.TestCase):
         """
         Test that, for a simple sine function, the correct amplitude is returned.
         """
-        star = PIPS.photdata([x, y, yerr])
+        star = PIPS.photdata([self.x, self.y, self.yerr])
 
         period,spectrum = star.amplitude_spectrum(p_min=0.1, p_max=20, N=1,multiprocessing=False)
         self.assertTrue(np.isclose(np.max(spectrum), 2))
