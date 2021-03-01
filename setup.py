@@ -68,7 +68,7 @@ if __name__ == "__main__":
         version=find_meta("version"),
         author=find_meta("author"),
         author_email=find_meta("email"),
-        maintainer=find_meta("author"),
+        maintainer=find_meta("maintainer"),
         maintainer_email=find_meta("email"),
         package_data={"": ["README.md", "LICENSE"]},
         long_description=read("README.md"),
