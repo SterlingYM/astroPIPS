@@ -5,6 +5,13 @@ import PIPS
 import os
 os.environ['NUMBA_DISABLE_JIT'] = 1
 
+# maybe redine @njit here... do it in a try/ except and don't install numba for 
+# try:
+    import numba
+except ImportError:
+    pass
+
+
 class TestFourier(unittest.TestCase):
     
     def test_zero_terms(self):
@@ -29,6 +36,20 @@ class TestFourier(unittest.TestCase):
         y = PIPS.periodogram.models.Fourier.fourier(x, period, Nterms, params) #
         test_y = np.cos(2 * np.pi * x + params[2]) + params[0]
         np.testing.assert_array_equal(y, test_y)
+        
+    def test_simple_fit(self):
+        x = np.linspace(0, 100, 1000)
+        y = np.sin(x/2)
+        yerr = np.ones_like(y) * .01
+
+        period = 4 * np.pi
+
+        Nterms = 1
+
+        y_fit = PIPS.periodogram.models.Fourier.get_bestfit_Fourier(x,y,yerr,period,Nterms,return_yfit=True,return_params=False,
+                                debug=True)
+        
+        np.testing.assert_allclose(y_fit - y, np.zeros(len(y)))
         
         
         
