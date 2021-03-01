@@ -191,7 +191,14 @@ class TestAmplitudeSpectrum(unittest.TestCase):
         period,spectrum = star.amplitude_spectrum(p_min=0.1, p_max=20, N=1,multiprocessing=False)
         self.assertTrue(np.all(spectrum[spectrum!=np.max(spectrum)] == 0))
         
-    # todo: is the actual amplitude correct, or is it multiplied by 2?
+    def test_correct_amplitude(self):
+        """
+        Test that, for a simple sine function, the correct amplitude is returned.
+        """
+        star = PIPS.photdata([x, y, yerr])
+
+        period,spectrum = star.amplitude_spectrum(p_min=0.1, p_max=20, N=1,multiprocessing=False)
+        self.assertTrue(np.isclose(np.max(spectrum), 2))
     
             
         
