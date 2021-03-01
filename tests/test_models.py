@@ -42,7 +42,7 @@ class TestFourier(unittest.TestCase):
         y_fit = PIPS.periodogram.models.Fourier.get_bestfit_Fourier(x,y,yerr,period,Nterms,return_yfit=True,return_params=False,
                                 debug=True)
         
-        np.testing.assert_allclose(y_fit, y, atol=1e-11)
+        np.testing.assert_allclose(y_fit, y, atol=1e-10)
         
         
 class TestGaussian(unittest.TestCase):
