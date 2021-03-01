@@ -180,7 +180,7 @@ class TestPhotdataIntegration(unittest.TestCase):
         data = PIPS.data_readin_LPP('sample_data/005.dat',filter='V')
         x,y,yerr = data
         star = photdata(data)
-        output_per, output_err = star.get_period()
+        output_per, output_err = star.get_period(debug=True)
         self.assertTrue(np.isclose(output_per, expected_per) and np.isclose(output_err, expected_err))
         
     def test_gaussian_fourier_convergence(self):
