@@ -166,9 +166,6 @@ class TestPhotdataIntegration(unittest.TestCase):
         fourier_period, fourier_err = star.get_period(model='Fourier', N_peak_test=1000, p_min=0.1,p_max=20)
         
         self.assertTrue(np.isclose(gauss_period, fourier_period))
-
-        
-                        
                         
 
 class TestAmplitudeSpectrum(unittest.TestCase):
@@ -180,7 +177,7 @@ class TestAmplitudeSpectrum(unittest.TestCase):
         """
         Test that the correct period is recovered in the amplitude spectrum.
         """
-        star = PIPS.photdata([x, y, yerr])
+        star = PIPS.photdata([self.x, self.y, self.yerr])
 
         period,spectrum = star.amplitude_spectrum(p_min=0.1, p_max=20, N=1,multiprocessing=False)
         self.assertTrue(np.isclose(4 * np.pi, period[np.argmax(spectrum)], atol=.001))
@@ -189,7 +186,7 @@ class TestAmplitudeSpectrum(unittest.TestCase):
         """
         Test that, for a simple sine function, only a single amplitude is returned.
         """
-        star = PIPS.photdata([x, y, yerr])
+        star = PIPS.photdata([self.x, self.y, self.yerr])
 
         period,spectrum = star.amplitude_spectrum(p_min=0.1, p_max=20, N=1,multiprocessing=False)
         self.assertTrue(np.all(spectrum[spectrum!=np.max(spectrum)] == 0))
