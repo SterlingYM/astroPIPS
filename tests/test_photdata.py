@@ -131,10 +131,31 @@ class TestPhotdataIntegration(unittest.TestCase):
         
                         
                         
-                    
-                        
-                        
+
+class TestAmplitudeSpectrum(unittest.TestCase):
+    x = np.linspace(0, 100, 1000)
+    y = np.sin(x/2)
+    yerr = np.ones_like(y) * .01
+    
+    def test_correct_period(self):
+        """
+        Test that the correct period is recovered in the amplitude spectrum.
+        """
+        star = PIPS.photdata([x, y, yerr])
+
+        period,spectrum = star.amplitude_spectrum(p_min=0.1, p_max=20, N=1,multiprocessing=False)
+        self.assertTrue(np.isclose(4 * np.pi, period[np.argmax(spectrum)], atol=.001))
         
+    def test_single_amplitude(self):
+        """
+        Test that, for a simple sine function, only a single amplitude is returned.
+        """
+        star = PIPS.photdata([x, y, yerr])
+
+        period,spectrum = star.amplitude_spectrum(p_min=0.1, p_max=20, N=1,multiprocessing=False)
+        self.assertTrue(np.all(spectrum[spectrum!=np.max(spectrum)] == 0))
+        
+    # todo: is the actual amplitude correct, or is it multiplied by 2?
     
             
         
