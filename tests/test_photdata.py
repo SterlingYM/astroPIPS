@@ -83,6 +83,45 @@ class TestPhotdataUnit(unittest.TestCase):
         object.cut(yerr_max=8)
         self.assertTrue(np.all(object.yerr <= 8))
         
+        
+    def test_undo_cut_yerr_max(self):
+        object = photdata(self.data)
+        object.cut(yerr_max=8)
+        object.reset_cuts()
+        np.testing.assert_array_equal([object.x, object.y, object.yerr], self.data)
+        
+    def test_undo_cut_xmin(self):
+        object = photdata(self.data)
+        object.cut(xmin=2)
+        object.reset_cuts()
+        np.testing.assert_array_equal([object.x, object.y, object.yerr], self.data)
+    
+    def test_undo_cut_x_max(self):
+        object = photdata(self.data)
+        object.cut(xmax=2)
+        object.reset_cuts()
+        np.testing.assert_array_equal([object.x, object.y, object.yerr], self.data)
+        
+    def test_undo_cut_ymin(self):
+        object = photdata(self.data)
+        object.cut(ymin=5)
+        object.reset_cuts()
+        np.testing.assert_array_equal([object.x, object.y, object.yerr], self.data)
+        
+    def test_undo_cut_ymax(self):
+        object = photdata(self.data)
+        object.cut(ymax=5)
+        object.reset_cuts()
+        np.testing.assert_array_equal([object.x, object.y, object.yerr], self.data)
+        
+    def test_undo_cut_yerrmin(self):
+        object = photdata(self.data)
+        object.cut(yerr_min=8)
+        object.reset_cuts()
+        np.testing.assert_array_equal([object.x, object.y, object.yerr], self.data)
+        
+        
+        
                         
     
                         
