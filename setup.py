@@ -9,7 +9,7 @@ from setuptools import find_packages, setup
 
 ###################################################################
 
-NAME = "simmer"
+NAME = "PIPS"
 PACKAGES = find_packages(where=".")
 META_PATH = os.path.join("PIPS", "__init__.py")
 CLASSIFIERS = [
