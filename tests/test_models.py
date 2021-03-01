@@ -74,7 +74,24 @@ class TestPeriodograms(unittest.TestCase):
         yerr = np.ones_like(y) * .01
 
         star = PIPS.photdata([x, y, yerr])
-        periods, power_cust = PIPS.periodogram.custom.periodogram_custom(0.1,10,100, x, y, yerr, Nterms=1, multiprocessing=False)
-        periods, power_fast = PIPS.periodogram.linalg.periodogram_fast(0.1,10,100, x, y, yerr, Nterms=1, multiprocessing=False)
+        periods, power_cust = PIPS.periodogram.custom.periodogram_custom(0.1,10,100, x, y, yerr, Nterms=1, multiprocessing=True)
+        periods, power_fast = PIPS.periodogram.linalg.periodogram_fast(0.1,10,100, x, y, yerr, Nterms=1, multiprocessing=True)
+        np.testing.assert_allclose(power_fast, power_cust, atol=1e-3)
+        
+        
+    def test_periodogram_custom_periods(self):
+        """
+        both periodogram methods should roughly line up!
+        """
+        x = np.linspace(0, 100, 1000)
+        y = np.sin(x)
+        yerr = np.ones_like(y) * .01
+        
+        custom_periods = np.linspace(0.1, 10, 100)
+
+        star = PIPS.photdata([x, y, yerr])
+        periods, power_custom_periods = PIPS.periodogram.custom.periodogram_custom(None,None,100, x, y, yerr, Nterms=1, multiprocessing=True,
+                                                                                  custom_periods=custom_periods)
+        periods, power = PIPS.periodogram.custom.periodogram_custom(0.1,10,100, x, y, yerr, Nterms=1, multiprocessing=True)
         np.testing.assert_allclose(power_fast, power_cust, atol=1e-3)
         
