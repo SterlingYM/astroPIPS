@@ -39,6 +39,12 @@ extensions = [
     "nbsphinx",
 ]
 
+
+nbsphinx_prolog = """
+This notebook is available at
+https://github.com/SterlingYM/PIPS/tree/master/docs/{{ env.doc2path(env.docname, base=None) }}
+"""
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -46,6 +52,11 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store','../tests']
+
+source_suffix = ".rst"
+
+# The master toctree document.
+master_doc = "index"
 
 
 # -- Options for HTML output -------------------------------------------------
