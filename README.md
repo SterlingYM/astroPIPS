@@ -1,8 +1,10 @@
 # Period-determination and Identification Pipeline Suite (PIPS)
-[![Build Status](https://dev.azure.com/PIPS-developers/PIPS/_apis/build/status/SterlingYM.PIPS?branchName=master)](https://dev.azure.com/PIPS-developers/PIPS/_build/latest?definitionId=1&branchName=master)
+
 ![GitHub tag (latest SemVer pre-release)](https://img.shields.io/github/v/tag/SterlingYM/PIPS?include_prereleases)
 ![GitHub](https://img.shields.io/github/license/SterlingYM/PIPS)
+[![Build Status](https://dev.azure.com/PIPS-developers/PIPS/_apis/build/status/SterlingYM.PIPS?branchName=master)](https://dev.azure.com/PIPS-developers/PIPS/_build/latest?definitionId=1&branchName=master)
 [![codecov](https://codecov.io/gh/SterlingYM/PIPS/branch/master/graph/badge.svg?token=R1W2S30XV2)](https://codecov.io/gh/SterlingYM/PIPS)
+[![Documentation Status](https://readthedocs.org/projects/pips/badge/?version=latest)](https://pips.readthedocs.io/en/latest/?badge=latest)
 
 PIPS is a pipeline suite designed for analysis of variable lightcurves of astronomical objects. PIPS was originally developed solely to determine the periods of RR Lyrae variable stars but has grown into a suite that can detect periods of variable stars accurately, precisely, and rapidly while offering several other features for variable star anaylsis. With this suite one can determine periods through several different methods, analyze the morphology of lightcurves via fourier analysis, and determine stellar properties based off of preexisting stellar models. Currently our team is also exploring the possibility of using this pipeline to detect periods of exoplanets as well. 
 
