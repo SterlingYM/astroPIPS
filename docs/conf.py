@@ -21,7 +21,7 @@ copyright = '2021, Y. Murakami, A. Hoffman, J.Sunseri, A. Savel'
 author = 'Y. Murakami, A. Hoffman, J.Sunseri, A. Savel'
 
 # The full version, including alpha/beta/rc tags
-release = '0.3.0'
+release = '0.3.0-alpha'
 
 
 # -- General configuration ---------------------------------------------------
