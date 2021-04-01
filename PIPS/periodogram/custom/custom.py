@@ -6,6 +6,14 @@ from multiprocessing import Pool
 from .models.Fourier import fourier, get_bestfit_Fourier, get_chi2_Fourier
 from .models.Gaussian import gaussian, get_bestfit_gaussian, get_chi2_gaussian
 
+
+### custom model setups: add your functions here
+# chi-square calculator
+MODELS = {
+    'Fourier': get_chi2_Fourier,
+    'Gaussian': get_chi2_gaussian
+}
+
 def get_chi2ref(x,y,yerr):
     '''
     returns non-varying reference of chi2 (model independent)
@@ -16,10 +24,7 @@ def periodogram_custom(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,mode
     '''
     model-dependent, individual fitting-based periodogram. Can be customized for any model.
     '''
-    MODELS = {
-        'Fourier': get_chi2_Fourier,
-        'Gaussian': get_chi2_gaussian
-    }
+    # kwargs for chi-square calculators
     MODEL_KWARGS = {
         'Fourier': {'x':x,'y':y,'yerr':yerr,'Nterms':Nterms},
         'Gaussian': {'x':x,'y':y,'yerr':yerr,'Nterms':Nterms}
