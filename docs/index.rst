@@ -11,4 +11,4 @@ Welcome to PIPS's documentation!
    :caption: Getting Started
 
    test
-   "Stellar Parameter Tutorial"
+   "Stellar Parameter Estimation Tutorial"
