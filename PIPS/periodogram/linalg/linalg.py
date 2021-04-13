@@ -2,10 +2,15 @@ import numpy as np
 from scipy.optimize import curve_fit
 from multiprocessing import Pool
 
-def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom_periods=None,**kwargs):
+def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom_periods=None,model='Fourier',**kwargs):
     '''
     linear algebra-based periodogram.
     '''
+    # avoid invalid log for Gaussian model
+    if model=='Gaussian':
+        if np.min(y) <= 0:
+            y += np.min(y)+1
+
     # weighted y prep
     w = (1/yerr)**2 / np.sum((1/yerr)**2)
     Y = (y - np.dot(w,y))/yerr # w*y = weighted mean
@@ -25,11 +30,19 @@ def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom
         X*P = Y ==> XT*X*Q = XT*Y
         power(P) = yT*X*
         '''
-        # Fourier series prep
-        const_term = np.ones_like(x).reshape(len(x),1)
-        sin_terms = np.sin(ii*2*np.pi*xx/period)/ee
-        cos_terms = np.cos(ii*2*np.pi*xx/period)/ee
-        X = np.concatenate((const_term,sin_terms,cos_terms),axis=1)
+
+        if model == 'Fourier':
+            # Fourier series prep
+            const_term = np.ones_like(x).reshape(len(x),1)
+            sin_terms = np.sin(ii*2*np.pi*xx/period)/ee
+            cos_terms = np.cos(ii*2*np.pi*xx/period)/ee
+            X = np.concatenate((const_term,sin_terms,cos_terms),axis=1)
+        elif model == 'Gaussian':
+            # Gaussian series prep
+            const_term = np.repeat(np.ones_like(x).reshape(len(x),1),Nterms)
+            linear_terms = np.repeat((xx%period)/ee,Nterms)
+            square_terms = np.repeat((xx%period)**2/ee,Nterms)
+            X = np.concatenate((const_term,linear_terms,square_terms),axis=1)
 
         # linear algebra
         XTX = np.dot(X.T,X)
