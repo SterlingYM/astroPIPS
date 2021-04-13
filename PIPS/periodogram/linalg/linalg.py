@@ -10,6 +10,7 @@ def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom
     if model=='Gaussian':
         if np.min(y) <= 0:
             y += np.min(y)+1
+        y = np.log(y)
 
     # weighted y prep
     w = (1/yerr)**2 / np.sum((1/yerr)**2)
@@ -39,9 +40,9 @@ def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom
             X = np.concatenate((const_term,sin_terms,cos_terms),axis=1)
         elif model == 'Gaussian':
             # Gaussian series prep
-            const_term = np.repeat(np.ones_like(x).reshape(len(x),1),Nterms)
-            linear_terms = np.repeat((xx%period)/ee,Nterms)
-            square_terms = np.repeat((xx%period)**2/ee,Nterms)
+            const_term = np.tile(np.ones_like(x).reshape(len(x),1),(1,Nterms))
+            linear_terms = (xx%period)/ee
+            square_terms = (xx%period)**2/ee
             X = np.concatenate((const_term,linear_terms,square_terms),axis=1)
 
         # linear algebra
