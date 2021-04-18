@@ -16,7 +16,7 @@ schedules:
 trigger:
 - dev-0.3.0
 - master
-pr: pr
+
 variables:
   codecov.token: "66ac2722-aebb-4911-8042-becfc9130ad3"
 # Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
