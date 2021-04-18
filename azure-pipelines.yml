@@ -13,8 +13,9 @@ schedules:
 
 # also, run if there are pushes to these branches
 trigger:
-- master
-
+batch: true # batch changes if true (the default); start a new build for every push if false
+branches:
+include: master
 variables:
   codecov.token: "66ac2722-aebb-4911-8042-becfc9130ad3"
 # Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
