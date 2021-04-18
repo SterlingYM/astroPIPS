@@ -13,7 +13,6 @@ schedules:
 
 # also, run if there are pushes to these branches
 trigger:
-- dev-0.3.0
 - master
 
 variables:
