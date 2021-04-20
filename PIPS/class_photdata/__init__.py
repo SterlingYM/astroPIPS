@@ -225,7 +225,7 @@ class photdata:
     #################
     # analysis tools
     #################      
-    def periodogram(self,p_min=0.1,p_max=4,custom_periods=None,N=None,method='fast',x=None,y=None,yerr=None,plot=False,multiprocessing=True,Nterms=5,N0=5,model='Fourier',raise_warnings=True,**kwargs):
+    def periodogram(self,p_min=0.1,p_max=4,custom_periods=None,N=None,method='fast',x=None,y=None,yerr=None,plot=False,multiprocessing=True,N0=5,model='Fourier',raise_warnings=True,**kwargs):
         '''
         Returns periodogram.
         optional inputs:
@@ -259,17 +259,26 @@ class photdata:
             'fast': periodogram_fast,
             'custom': periodogram_custom
         }
+
+        # default Nterms handling: TODO: make this more elegant
+        if method=='fast':
+            if 'Nterms' in kwargs:
+                Nterms = kwargs['Nterms']
+            else:
+                kwargs['Nterms'] = 5
+
         METHOD_KWARGS = {
             'fast': {
-                'p_min':p_min,'p_max':p_max,'custom_periods':custom_periods,'N':N,'x':x,'y':y,'yerr':yerr,'Nterms':Nterms,'multiprocessing':multiprocessing,'model':model
+                'p_min':p_min,'p_max':p_max,'custom_periods':custom_periods,'N':N,'x':x,'y':y,'yerr':yerr,'multiprocessing':multiprocessing,'model':model
                 },
             'custom':{
-                'p_min':p_min,'p_max':p_max,'custom_periods':custom_periods,'N':N,'x':x,'y':y,'yerr':yerr,'Nterms':Nterms,'multiprocessing':multiprocessing,'model':model
+                'p_min':p_min,'p_max':p_max,'custom_periods':custom_periods,'N':N,'x':x,'y':y,'yerr':yerr,'multiprocessing':multiprocessing,'model':model
                 }
         }
-
+        kwargs.update(METHOD_KWARGS[method])
+        
         # main
-        periods,power = METHODS[method](**METHOD_KWARGS[method])
+        periods,power = METHODS[method](**kwargs)
         return periods, power
     
     def get_period(self,p_min=0.1,p_max=4,x=None,y=None,yerr=None,Nterms=5,method='fast',model='Fourier',peaks_to_test=5,N_peak_test=500,debug=False,force_refine=False,default_err=1e-6,**kwargs):

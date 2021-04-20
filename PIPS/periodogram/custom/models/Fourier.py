@@ -5,27 +5,30 @@ from multiprocessing import Pool
 
 
 @numba.njit
-def fourier(x,period,Nterms,params,debug=False):
+def fourier(x,period,params,Nterms):
     '''
     A Fourier function (model) that calculates y-value 
     at each x-value for given period and parametrs.
     ** IMPORTANT NOTE: ```params``` has to be a numpy array (not python list)
     '''
-    if debug:
-        print('*Fourier: starting Fourier')
-        print('*Fourier: params = ',params)
+    # if debug:
+    #     print('*Fourier: starting Fourier')
+    #     print('*Fourier: params = ',params)
     y = np.ones_like(x) * params[0]
     C_list = params[1:Nterms+1]
     phi_list = params[Nterms+1:]
-    if debug:
-        print('*Fourier: y_initial = ',y)
-        print('*Fourier: C_list = ',C_list)
-        print('*Fourier: phi_list = ',phi_list)
+    # if debug:
+    #     print('*Fourier: y_initial = ',y)
+    #     print('*Fourier: C_list = ',C_list)
+    #     print('*Fourier: phi_list = ',phi_list)
     for i in range(Nterms):
         y = y + C_list[i] * np.cos((i+1)*2*np.pi*x/period + phi_list[i])
-    if debug:
-        print('*Fourier: y after calculation = ',y)
+    # if debug:
+    #     print('*Fourier: y after calculation = ',y)
     return y
+
+def fourier_p0(x,y,yerr,period,Nterms,**kwargs):
+        return [np.mean(y),*np.zeros(2*Nterms)]
 
 def get_bestfit_Fourier(x,y,yerr,period,Nterms,return_yfit=True,return_params=False,
                         debug=False):
@@ -63,11 +66,9 @@ def get_bestfit_Fourier(x,y,yerr,period,Nterms,return_yfit=True,return_params=Fa
     elif return_params:
         return popt
 
-def get_chi2_Fourier(x,y,yerr,period,Nterms=4):
-    '''
-    returns chi square value for the best-fit function at given folding period.
-    TODO: copy and paste the content of get_bestfit_Fourier() function
-          to make code run faster
-    '''
-    y_fit = get_bestfit_Fourier(x,y,yerr,period,Nterms,return_yfit=True,return_params=False)
-    return np.sum((y-y_fit)**2/yerr**2)/(len(y)-1)
+# def get_chi2_Fourier(x,y,yerr,period,Nterms=4):
+#     '''
+#     returns chi square value for the best-fit function at given folding period.
+#     '''
+#     y_fit = get_bestfit_Fourier(x,y,yerr,period,Nterms,return_yfit=True,return_params=False)
+#     return np.sum((y-y_fit)**2/yerr**2)/(len(y)-1)

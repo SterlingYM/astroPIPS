@@ -8,8 +8,8 @@ def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom
     '''
     # avoid invalid log for Gaussian model
     if model=='Gaussian':
-        if np.min(y) <= 0:
-            y += np.min(y)+1
+        y -= np.min(y)-1e-10
+        yerr = yerr/y
         y = np.log(y)
 
     # weighted y prep
