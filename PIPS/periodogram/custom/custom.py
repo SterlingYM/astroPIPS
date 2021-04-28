@@ -6,49 +6,65 @@ from multiprocessing import Pool
 from .models.Fourier import fourier, fourier_p0
 from .models.Gaussian import gaussian, gaussian_p0
 
-### custom model setups: add your functions here
-# chi-square calculator
+######### custom models: add your functions here ##########
 MODELS = {
     'Fourier': fourier,
     'Gaussian': gaussian,
-    # 'Super-Gaussian': super_gaussian,
 }
-p0_funcs = {
+P0_FUNCS = {
     'Fourier': fourier_p0,
     'Gaussian': gaussian_p0,
 }
+###########################################################
 
-def prepare_MODEL_KWARGS(model,x,y,yerr,**kwargs):
+def check_MODEL_KWARGS(model,kwarg_for_helper=True,**kwargs):
     KWARGS = {}
+    if kwarg_for_helper:
+        helper_kwargs = ['return_yfit','return_params','return_pcov','fit_period','maxfev']
+    else:
+        helper_kwargs = []
     # pre-inplemented model-dependent kwargs
     if model=='Fourier':
         requirements = ['Nterms']
     if model=='Gaussian':
-        requirements = []
+        requirements = ['Nterms','p']
 
     # prepare KWARGS
-    for key in requirements:
+    for key in [*requirements,*helper_kwargs]:
         if key in kwargs:
             KWARGS[key]=kwargs[key]
-        else:
-            raise ValueError(model+f' function requires the following argumnets: {requirements}')
+        # else:
+        #     raise ValueError(model+f' function requires the following argumnets: {requirements}')
     return KWARGS
 
-def get_bestfit(MODEL,p0_func,x,y,yerr,period,return_yfit=True,return_params=False,maxfev=1000,**kwargs):
-    p0 = p0_func(x,y,yerr,period,**kwargs)
-    try:
-        popt,pcov = curve_fit(
-            lambda x,*params:MODEL(x,period,np.array(params),**kwargs),x,y,sigma=yerr,p0=p0,maxfev=maxfev)
-        y_fit = MODEL(x,period,np.array(popt),**kwargs)
-    except RuntimeError:
-        y_fit = np.ones_like(y) * np.mean(y) # equiv. to zero in periodogram
+def get_bestfit(MODEL,p0_func,x,y,yerr,period,return_yfit=True,return_params=False,return_pcov=False,fit_period=False,maxfev=1000,**kwargs):
+    if fit_period:
+        p0 = [period,*p0_func(x,y,yerr,period,**kwargs)]
+        try:
+            popt,pcov = curve_fit(
+                lambda x,period,*params:MODEL(x,period,np.array(params),**kwargs),x,y,sigma=yerr,p0=p0,maxfev=maxfev)
+            y_fit = MODEL(x,period,np.array(popt),**kwargs)
+        except RuntimeError:
+            y_fit = np.ones_like(y) * np.mean(y) # equiv. to zero in periodogram
+    else:
+        p0 = p0_func(x,y,yerr,period,**kwargs)
+        try:
+            popt,pcov = curve_fit(
+                lambda x,*params:MODEL(x,period,np.array(params),**kwargs),x,y,sigma=yerr,p0=p0,maxfev=maxfev)
+            y_fit = MODEL(x,period,np.array(popt),**kwargs)
+        except RuntimeError:
+            y_fit = np.ones_like(y) * np.mean(y) # equiv. to zero in periodogram
     if return_yfit:
         if not return_params:
             return y_fit
         if return_params:
             return y_fit,popt
+    elif return_params and return_pcov:
+        return popt,pcov
     elif return_params:
         return popt
+    elif return_pcov:
+        return pcov
 
 def get_chi2(MODEL,p0_func,x,y,yerr,period,**kwargs):
     '''
@@ -70,8 +86,8 @@ def periodogram_custom(x,y,yerr,p_min=None,p_max=None,N=None,p0_func=None,multip
     # select models
     if isinstance(model, str):
         MODEL = MODELS[model]
-        KWARGS = {**kwargs,**prepare_MODEL_KWARGS(model,x,y,yerr,**kwargs)}
-        P0_FUNC = p0_funcs[model]
+        KWARGS = {**kwargs,**check_MODEL_KWARGS(model,**kwargs)}
+        P0_FUNC = P0_FUNCS[model]
     elif hasattr(model, '__call__'):
         MODEL = model
         KWARGS= kwargs

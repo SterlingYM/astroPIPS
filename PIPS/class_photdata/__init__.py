@@ -5,10 +5,10 @@ import numba
 from multiprocessing import Pool
 import time
 
-from ..periodogram.custom import periodogram_custom
+from ..periodogram.custom import periodogram_custom, get_bestfit, check_MODEL_KWARGS, MODELS, P0_FUNCS
 from ..periodogram.linalg import periodogram_fast
-from ..periodogram.custom.models.Fourier import fourier,get_bestfit_Fourier
-from ..periodogram.custom.models.Gaussian import gaussian,get_bestfit_gaussian
+from ..periodogram.custom.models.Fourier import fourier, fourier_p0
+from ..periodogram.custom.models.Gaussian import gaussian, gaussian_p0
 
 class photdata:
     '''
@@ -72,15 +72,26 @@ class photdata:
     ##############
     # utilities
     ##############
-    def check_model(self, input_model, model_dict):
+    def check_model(self, model, p0_func, **kwargs):
         """
         Checks that a given input model is available.
-        input_model : (str) user-input model.
-        model_dict : (dict) dictionary containing model strings as keys and arbitrary functions as values.
+        model : (str/obj) user-input model.
+        p0_func : (str/obj) dictionary containing model strings as keys and arbitrary functions as values.
         """
-        if input_model not in model_dict.keys():
-            raise ValueError("""Input model is not available. Currently available models \
-                                include 'Gaussian' and 'Fourier'.""")
+        if isinstance(model, str):
+            MODEL = MODELS[model]
+            KWARGS = check_MODEL_KWARGS(model,**kwargs)
+            P0_FUNC = P0_FUNCS[model]
+        elif hasattr(model, '__call__'):
+            MODEL = model
+            KWARGS= kwargs
+            if hasattr(p0_func, '__call__'):
+                P0_FUNC = p0_func
+            else:
+                raise ValueError('custom model requires initial-guess prep function (p0_func).')
+        else:
+            raise ValueError('model has to be either a function or a pre-defined function name')
+        return MODEL, P0_FUNC, KWARGS
         
     def cut(self,xmin=None,xmax=None,ymin=None,ymax=None,yerr_min=None,yerr_max=None):
         '''
@@ -174,52 +185,51 @@ class photdata:
             raise ValueError('Input data is incomplete. All x, y, and yerr are needed.')
         return x,y,yerr
 
-    def get_bestfit_curve(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5,x_th=None,**kwargs):
+    def get_bestfit_curve(self,x=None,y=None,yerr=None,period=None,model='Fourier',p0_func=None,x_th=None,**kwargs):
         '''
         Calculates the best-fit smooth curve.
         '''
         # prepare data
+        if model=='Fourier':
+            if 'Nterms' in kwargs:
+                Nterms = kwargs['Nterms']
+            else:
+                kwargs['Nterms'] = 5        
         x,y,yerr = self.prepare_data(x,y,yerr)
         
         # use automatically determined period if period is not explicitly given
         if period == None:
             if self.period == None:
-                period, _ = self.get_period(**kwargs)
+                period, _ = self.get_period(model=model,p0_func=p0_func,**kwargs)
             period = self.period
 
-        # model-dependent options
-        MODEL_bestfit = {
-            'Fourier': get_bestfit_Fourier,
-            'Gaussian': get_bestfit_gaussian
-        }
-        MODELS = {
-            'Fourier': fourier,
-            'Gaussian': gaussian
-        }
-        self.check_model(model, MODELS)
-        # 
-        popt = MODEL_bestfit[model](x,y,yerr,period,Nterms,return_yfit=False,return_params=True)
+        # select models
+        MODEL, P0_FUNC, KWARGS = self.check_model(model, p0_func, kwarg_for_helper=True,**kwargs)
+
+        # get bestfit model-parameters
+        popt = get_bestfit(MODEL,P0_FUNC,x,y,yerr,period,return_yfit=False,return_params=True,**KWARGS)
         
         # construct theoretical curve
+        MODEL, P0_FUNC, KWARGS = self.check_model(model, p0_func, kwarg_for_helper=False,**kwargs)
         if x_th is None:
             x_th = np.linspace(0,period,1000)
-        y_th = MODELS[model](x_th,period,Nterms,np.array(popt))
+        y_th = MODEL(x_th,period,np.array(popt),**KWARGS)
 
         return x_th,y_th
 
-    def get_bestfit_amplitude(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5):
+    def get_bestfit_amplitude(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5,**kwargs):
         '''
         calculates the amplitude of best-fit curve.
         '''
-        _,y_th = self.get_bestfit_curve(x,y,yerr,period,model,Nterms)
+        _,y_th = self.get_bestfit_curve(x,y,yerr,period,model,Nterms,**kwargs)
         return np.max(y_th)-np.min(y_th)
 
-    def get_meanmag(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5):
+    def get_meanmag(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5,**kwargs):
         '''
         calculates an estimated mean magnitude from best-fit curve.
         This method requires a reliable fitting, but is more robust against incomplete sampling in pulsation phase
         '''
-        _,y_th = self.get_bestfit_curve(x,y,yerr,period,model,Nterms)
+        _,y_th = self.get_bestfit_curve(x,y,yerr,period,model,Nterms,**kwargs)
         return np.mean(y_th)
 
     #################
@@ -266,6 +276,7 @@ class photdata:
                 Nterms = kwargs['Nterms']
             else:
                 kwargs['Nterms'] = 5
+                Nterms = 5
 
         METHOD_KWARGS = {
             'fast': {
@@ -281,21 +292,21 @@ class photdata:
         periods,power = METHODS[method](**kwargs)
         return periods, power
     
-    def get_period(self,p_min=0.1,p_max=4,x=None,y=None,yerr=None,Nterms=5,method='fast',model='Fourier',peaks_to_test=5,N_peak_test=500,debug=False,force_refine=False,default_err=1e-6,**kwargs):
+    def get_period(self,p_min=0.1,p_max=4,x=None,y=None,yerr=None,method='fast',model='Fourier',p0_func=None,peaks_to_test=5,N_peak_test=500,debug=False,force_refine=False,default_err=1e-6,no_overwrite=False,multiprocessing=True,**kwargs):
         '''
         detects period.
         '''
-        # model-dependent options
-        MODEL_helpers = {
-            'Fourier': lambda x,*params: fourier(x,params[0],Nterms,np.array(params[1:])),
-            'Gaussian': lambda x,*params: gaussian(x,params[0],Nterms,np.array(params[1:])),
-        }
-        MODEL_bestfit = {
-            'Fourier': get_bestfit_Fourier,
-            'Gaussian': get_bestfit_gaussian
-        }
-        
-        self.check_model(model, MODEL_bestfit)
+
+        # model & kwargs preparation     
+        if method=='fast':
+            if 'Nterms' in kwargs:
+                Nterms = kwargs['Nterms']
+            else:
+                kwargs['Nterms'] = 5
+        if model=='Fourier':
+            Nterms = kwargs['Nterms']   
+        MODEL, P0_FUNC, KWARGS = self.check_model(model,p0_func,**kwargs)
+
 
         # debug mode option outputs the progress 
         # (TODO: change this to verbosity - or logger?)
@@ -310,7 +321,7 @@ class photdata:
         # get periodogram
         if debug:
             print(f'{time.time()-t0:.3f}s --- getting a periodogram...')
-        period,power = self.periodogram(p_min=p_min,p_max=p_max,x=x,y=y,yerr=yerr,method=method,model=model,Nterms=Nterms,debug=False,**kwargs)
+        period,power = self.periodogram(p_min=p_min,p_max=p_max,x=x,y=y,yerr=yerr,method=method,model=model,debug=False,multiprocessing=multiprocessing,**kwargs)
 
         # select top peaks_to_test independent peaks
         if debug:
@@ -336,13 +347,14 @@ class photdata:
             print(f'{time.time()-t0:.3f}s --- performing finer sampling near peaks...')
         period,power = self.periodogram(
             custom_periods=custom_periods,
-            x=x,y=y,yerr=yerr,method=method,model=model,Nterms=Nterms,**kwargs
+            x=x,y=y,yerr=yerr,method=method,model=model,p0_func=p0_func,
+            multiprocessing=multiprocessing,**kwargs
             )
         period = period[power==power.max()][0]
         if debug:
             print(f'{time.time()-t0:.3f}s --- period candidate: ', period)
             
-        model_bestfit = MODEL_bestfit[model](x,y,yerr,period,Nterms,return_yfit=False,return_params=True)
+        model_bestfit = get_bestfit(MODEL,P0_FUNC,x,y,yerr,period,return_yfit=False,return_params=True,**kwargs)
 
         # detect aliasing
         if model=='Fourier':
@@ -351,7 +363,7 @@ class photdata:
             factor = np.argmax(abs(model_bestfit[1:Nterms]))+1
             if factor != 1:
                 period /= factor
-                model_bestfit = MODEL_bestfit[model](x,y,yerr,period,Nterms,return_yfit=False,return_params=True)
+                model_bestfit = get_bestfit(MODEL,P0_FUNC,x,y,yerr,period,return_yfit=False,return_params=True,**KWARGS)
             if debug:
                 print(f'{time.time()-t0:.3f}s --- alias factor: ',factor)
                 print(f'{time.time()-t0:.3f}s --- period candidate: ',period)
@@ -359,7 +371,9 @@ class photdata:
         # get uncertainty
         if debug:
             print(f'{time.time()-t0:.3f}s --- estimating the uncertainty...')
-        popt,pcov = curve_fit(MODEL_helpers[model],x,y,sigma=yerr, p0=[period,*model_bestfit],maxfev=100000)
+        
+        KWARGS['maxfev'] = 100000
+        popt, pcov = get_bestfit(MODEL,P0_FUNC,x,y,yerr,period,return_yfit=False,return_params=True,return_pcov=True,fit_period=True,**KWARGS)
         period_err = np.sqrt(np.diag(pcov))[0]
         if debug: 
             print(f'{time.time()-t0:.3f}s --- period candidate: ',period)
@@ -383,13 +397,13 @@ class photdata:
             # get periodogram
             period,power = self.periodogram(
                 custom_periods=custom_periods,
-                x=x,y=y,yerr=yerr,method=method,model=model,Nterms=Nterms,**kwargs
+                x=x,y=y,yerr=yerr,method=method,model=model,multiprocessing=multiprocessing,**kwargs
                 )
             period = period[power==power.max()][0]
 
             # get uncertainty
-            model_bestfit = MODEL_bestfit[model](x,y,yerr,period,Nterms,return_yfit=False,return_params=True)
-            _,pcov = curve_fit(MODEL_helpers[model],x,y,sigma=yerr, p0=[period,*model_bestfit],maxfev=100000)
+            KWARGS['maxfev'] = 100000
+            popt, pcov = get_bestfit(MODEL,P0_FUNC,x,y,yerr,period,return_yfit=False,return_params=True,return_pcov=True,fit_period=True,**KWARGS)
             period_err = np.sqrt(np.diag(pcov))[0]
             if debug: 
                 print(f'{time.time()-t0:.3f}s --- period candidate: ',period)
@@ -414,14 +428,15 @@ class photdata:
             period_err = peak_width
 
         # finalize
-        self.period = period
-        self.period_err = period_err
+        if not no_overwrite:
+            self.period = period
+            self.period_err = period_err
         if debug:
             print(f'{time.time()-t0:.3f}s ---','period = {:.{precision}f} +- {:.{precision}f}d'.format(period,period_err,precision=5 if period_err==np.inf else int(abs(np.log10(period_err))+2)))
             print(f'{time.time()-t0:.3f}s --- process completed.')
         return period,period_err
    
-    def get_period_multi(self,N,FAR_max=1e-3,model='Fourier',Nterms=5,**kwargs):
+    def get_period_multi(self,N,FAR_max=1e-3,model='Fourier',p0_func=None,**kwargs):
         '''
         multi-period detection. 
         Re-detects P1 and then proceeds to P2, P3, ... PN.
@@ -429,12 +444,14 @@ class photdata:
         '''
         # TODO: implement FAR
 
-        # model-dependent options
-        MODEL_bestfit = {
-            'Fourier': get_bestfit_Fourier,
-            'Gaussian': get_bestfit_gaussian
-        }
-        self.check_model(model, MODEL_bestfit)
+        # model & kwargs preparation     
+        if model=='Fourier':
+            if 'Nterms' in kwargs:
+                Nterms = kwargs['Nterms']
+            else:
+                kwargs['Nterms'] = 5
+            Nterms = kwargs['Nterms']   
+        MODEL, P0_FUNC, KWARGS = self.check_model(model,p0_func,**kwargs)
         
         # data prep
         x_prewhitened = self.x.copy()
@@ -451,7 +468,9 @@ class photdata:
                 x=x_prewhitened,
                 y=y_prewhitened,
                 yerr=yerr_prewhitened,
-                model=model,Nterms=Nterms,**kwargs)
+                model=model,
+                p0_func=p0_func,
+                **kwargs)
             periods.append(period)
             period_errors.append(period_err)
             amp = self.get_bestfit_amplitude(
@@ -459,17 +478,19 @@ class photdata:
                 y=y_prewhitened,
                 yerr=yerr_prewhitened,
                 period=period,
-                model=model,Nterms=Nterms)
+                model=model,
+                **kwargs)
             amplitudes.append(amp)
-            y_prewhitened -= MODEL_bestfit[model](
+            y_prewhitened -= get_bestfit(
+                MODEL,P0_FUNC,
                 x_prewhitened,
                 y_prewhitened,
                 yerr_prewhitened,
                 period,
-                Nterms,return_yfit=True,return_params=False)
+                return_yfit=True,return_params=False,**KWARGS)
         return periods,period_errors,amplitudes
 
-    def amplitude_spectrum(self,p_min,p_max,N,model='Fourier',grid=10000,plot=False,Nterms=5,**kwargs):
+    def amplitude_spectrum(self,p_min,p_max,N,model='Fourier',p0_func=None,grid=10000,plot=False,**kwargs):
         '''
         Returns the amplitude spectrum.
         inputs: p_min, p_max, model, plot
@@ -481,7 +502,7 @@ class photdata:
             p_min=p_min,
             p_max=p_max,
             model=model,
-            Nterms=Nterms,
+            p0_func=p0_func,
             **kwargs)
 
         period_grid = np.linspace(p_min,p_max,grid)
