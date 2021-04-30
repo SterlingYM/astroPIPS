@@ -10,5 +10,6 @@ Welcome to PIPS's documentation!
    :maxdepth: 2
    :caption: Getting Started
 
-   test
+   installation
+   tutorial
    stellar_parameters
