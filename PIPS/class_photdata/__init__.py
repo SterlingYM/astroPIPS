@@ -1,9 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, OptimizeWarning
 import numba
 from multiprocessing import Pool
 import time
+import warnings
+warnings.simplefilter("ignore", OptimizeWarning)
 
 from ..periodogram.custom import periodogram_custom, get_bestfit, check_MODEL_KWARGS, MODELS, P0_FUNCS
 from ..periodogram.linalg import periodogram_fast

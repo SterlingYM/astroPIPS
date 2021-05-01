@@ -1,7 +1,9 @@
 import numpy as np
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, OptimizeWarning
 import numba
 from multiprocessing import Pool
+import warnings
+warnings.simplefilter("ignore", OptimizeWarning)
 
 from .models.Fourier import fourier, fourier_p0
 from .models.Gaussian import gaussian, gaussian_p0
@@ -46,6 +48,8 @@ def get_bestfit(MODEL,p0_func,x,y,yerr,period,return_yfit=True,return_params=Fal
             y_fit = MODEL(x,period,np.array(popt),**kwargs)
         except RuntimeError:
             y_fit = np.ones_like(y) * np.mean(y) # equiv. to zero in periodogram
+        except TypeError:
+            print('received incorrect kwargs: ',kwargs)
     else:
         p0 = p0_func(x,y,yerr,period,**kwargs)
         try:
@@ -54,6 +58,8 @@ def get_bestfit(MODEL,p0_func,x,y,yerr,period,return_yfit=True,return_params=Fal
             y_fit = MODEL(x,period,np.array(popt),**kwargs)
         except RuntimeError:
             y_fit = np.ones_like(y) * np.mean(y) # equiv. to zero in periodogram
+        except TypeError:
+            print('received incorrect kwargs: ',kwargs)
     if return_yfit:
         if not return_params:
             return y_fit
@@ -86,7 +92,7 @@ def periodogram_custom(x,y,yerr,p_min=None,p_max=None,N=None,p0_func=None,multip
     # select models
     if isinstance(model, str):
         MODEL = MODELS[model]
-        KWARGS = {**kwargs,**check_MODEL_KWARGS(model,**kwargs)}
+        KWARGS = {**check_MODEL_KWARGS(model,**kwargs)}
         P0_FUNC = P0_FUNCS[model]
     elif hasattr(model, '__call__'):
         MODEL = model
@@ -99,10 +105,10 @@ def periodogram_custom(x,y,yerr,p_min=None,p_max=None,N=None,p0_func=None,multip
         raise ValueError('model has to be either a function or a pre-defined function name')
 
     # prepare periods
-    if (p_min is not None) and (p_max is not None):
-        periods = np.linspace(p_min,p_max,N)
-    elif custom_periods is not None:
+    if custom_periods is not None:
         periods = custom_periods
+    elif (p_min is not None) and (p_max is not None):
+        periods = np.linspace(p_min,p_max,N)
     else:
         raise ValueError('period range or period list are not given')
 
