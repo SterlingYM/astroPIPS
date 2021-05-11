@@ -28,8 +28,10 @@ def check_MODEL_KWARGS(model,kwarg_for_helper=True,**kwargs):
     # pre-inplemented model-dependent kwargs
     if model=='Fourier':
         requirements = ['Nterms']
-    if model=='Gaussian':
+    elif model=='Gaussian':
         requirements = ['Nterms','p']
+    else:
+        requirements = kwargs.keys()
 
     # prepare KWARGS
     for key in [*requirements,*helper_kwargs]:
