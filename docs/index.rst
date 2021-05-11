@@ -12,4 +12,5 @@ Welcome to PIPS's documentation!
 
    installation
    tutorial
+   data_manip
    stellar_parameters

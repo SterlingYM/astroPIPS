@@ -6,6 +6,7 @@ from multiprocessing import Pool
 import time
 import warnings
 warnings.simplefilter("ignore", OptimizeWarning)
+import copy
 
 from ..periodogram.custom import periodogram_custom, get_bestfit, check_MODEL_KWARGS, MODELS, P0_FUNCS
 from ..periodogram.linalg import periodogram_fast
@@ -99,8 +100,9 @@ class photdata:
         return type(self)([_x,_y,_yerr])
 
     def __copy__(self):
-        newone = type(self)(self.data)
-        newone.__dict__.update(self.__dict__)
+        '''deep copy by default!'''
+        newone = type(self)(copy.deepcopy(self.data))
+        newone.__dict__.update(copy.deepcopy(self.__dict__))
         return newone
 
     def copy(self):
@@ -588,7 +590,7 @@ class photdata:
         phase = (self.x % period)/period
 
         # plot
-        if ax=None:
+        if ax==None:
             fig, ax = plt.subplots(1,1,figsize=figsize)
         if 'color' not in kwargs.keys():
             kwargs['color'] = 'k'
