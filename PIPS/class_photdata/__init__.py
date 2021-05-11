@@ -53,23 +53,66 @@ class photdata:
         plot_lc(self,period=None,invert_yaxis=True,**kwargs)
     '''
     
-    def __init__(self,data,label='',band=''):
+    def __init__(self,data,label='',band=None):
         '''
         Takes in a list or numpy array of time-series data
         e.g. ```[time,mag,mag_err]```
         '''
-        self.x = data[0]
-        self.y = data[1]
-        self.yerr = data[2]
+        self.x = np.array(data[0])
+        self.y = np.array(data[1])
+        self.yerr = np.array(data[2])
         self.period = None
         self.period_err = None
         self.amplitude = None
         self.amplitude_err = None
         self.label = label
-        self.band = ''
+        self.band = band
         self.epoch = None
         self.epoch_offset = None
         self.meanmag = None # based on best-fit function: requires period
+        self.multiprocessing = True
+
+    def __repr__(self):
+        return f"Photdata ({self.label},{self.band},{len(self.x)},{self.period})"
+
+    def __str__(self):
+        return f"Photdata {self.label}: band={self.band}, size={len(self.x)}, period={self.period}"
+
+    def __len__(self):
+        return len(self.x)
+
+    def __hash__(self):
+        if hasattr(self,'_x_raw'):
+            return hash((self._x_raw.tobytes(), self._y_raw.tobytes(), self._yerr_raw.tobytes()))
+        return hash((self.x.tobytes(), self.y.tobytes(), self.yerr.tobytes()))
+
+    def __eq__(self,other):
+        return hash(self) == hash(other)
+
+    def __ne__(self,other):
+        return hash(self) != hash(other)
+
+    def __add__(self,other):
+        _x = [*self.x,*other.x]
+        _y = [*self.y,*other.y]
+        _yerr = [*self.yerr,*other.yerr]
+        return type(self)([_x,_y,_yerr])
+
+    def __copy__(self):
+        newone = type(self)(self.data)
+        newone.__dict__.update(self.__dict__)
+        return newone
+
+    def copy(self):
+        return self.__copy__()
+
+    @property
+    def shape(self):
+        return np.array([self.x,self.y,self.yerr]).shape
+
+    @property
+    def data(self):
+        return np.array([self.x,self.y,self.yerr])
         
     ##############
     # utilities
@@ -86,7 +129,7 @@ class photdata:
             P0_FUNC = P0_FUNCS[model]
         elif hasattr(model, '__call__'):
             MODEL = model
-            KWARGS= kwargs
+            KWARGS= check_MODEL_KWARGS(model,**kwargs)
             if hasattr(p0_func, '__call__'):
                 P0_FUNC = p0_func
             else:
@@ -109,9 +152,9 @@ class photdata:
         # first-time operation
         if not hasattr(self,'cut_xmin'):
             # cut_xmin does not exist until cut() is run for the first time. Once it is run, cut_xmin==None and does exist even if the cut is not applied in x.
-            self.x_raw = self.x
-            self.y_raw = self.y
-            self.yerr_raw = self.yerr
+            self._x_raw = self.x
+            self._y_raw = self.y
+            self._yerr_raw = self.yerr
 
             # initialize 
             self.cut_xmin = xmin
@@ -137,46 +180,46 @@ class photdata:
                 self.cut_yerr_max = yerr_max
 
         # prepare cut conditions
-        condition = np.full(self.x_raw.shape, True, dtype=bool)
+        condition = np.full(self._x_raw.shape, True, dtype=bool)
         if self.cut_xmin is not None:
-            condition = condition & (self.x_raw >= self.cut_xmin)
+            condition = condition & (self._x_raw >= self.cut_xmin)
         if self.cut_xmax is not None:
-            condition = condition & (self.x_raw <= self.cut_xmax)
+            condition = condition & (self._x_raw <= self.cut_xmax)
         if self.cut_ymin is not None:
-            condition = condition & (self.y_raw >= self.cut_ymin)
+            condition = condition & (self._y_raw >= self.cut_ymin)
         if self.cut_ymax is not None:
-            condition = condition & (self.y_raw <= self.cut_ymax)
+            condition = condition & (self._y_raw <= self.cut_ymax)
         if self.cut_yerr_min is not None:
-            condition = condition & (self.yerr_raw >= self.cut_yerr_min)
+            condition = condition & (self._yerr_raw >= self.cut_yerr_min)
         if self.cut_yerr_max is not None:
-            condition = condition & (self.yerr_raw <= self.cut_yerr_max)
+            condition = condition & (self._yerr_raw <= self.cut_yerr_max)
 
         # apply cuts
-        self.x = self.x_raw[condition]
-        self.y = self.y_raw[condition]
-        self.yerr = self.yerr_raw[condition]
+        self.x = self._x_raw[condition]
+        self.y = self._y_raw[condition]
+        self.yerr = self._yerr_raw[condition]
         
     def reset_cuts(self):
         '''
         resets cuts applied by cut() function.
         '''
-        if hasattr(self,'x_raw'):
+        if hasattr(self,'_x_raw'):
             self.cut_xmin = None
             self.cut_xmax = None
             self.cut_ymin = None
             self.cut_ymax = None
             self.cut_yerr_min = None
             self.cut_yerr_max = None
-            self.x = self.x_raw
-            self.y = self.y_raw
-            self.yerr = self.yerr_raw
+            self.x = self._x_raw
+            self.y = self._y_raw
+            self.yerr = self._yerr_raw
 
     def summary(self):
         '''
         prints out the summary.
         TODO: Jupyter widget?
         '''
-        raise NotImplementedError
+        return self.__str__()
 
     def prepare_data(self,x,y,yerr):
         if (x is None) and (y is None) and (yerr is None):
@@ -255,6 +298,9 @@ class photdata:
             power 
             (and axis if plot==True)
         '''
+        # check global setting for mp
+        multiprocessing = multiprocessing and self.multiprocessing
+
         # prepare data
         x,y,yerr = self.prepare_data(x,y,yerr)
         
@@ -298,6 +344,8 @@ class photdata:
         '''
         detects period.
         '''
+        # check global setting for mp
+        multiprocessing = multiprocessing and self.multiprocessing
 
         # model & kwargs preparation     
         if method=='fast':
@@ -323,7 +371,7 @@ class photdata:
         # get periodogram
         if debug:
             print(f'{time.time()-t0:.3f}s --- getting a periodogram...')
-        period,power = self.periodogram(p_min=p_min,p_max=p_max,x=x,y=y,yerr=yerr,method=method,model=model,debug=False,multiprocessing=multiprocessing,**kwargs)
+        period,power = self.periodogram(p_min=p_min,p_max=p_max,x=x,y=y,yerr=yerr,method=method,model=model,p0_func=p0_func,multiprocessing=multiprocessing,**kwargs)
 
         # select top peaks_to_test independent peaks
         if debug:
@@ -399,7 +447,7 @@ class photdata:
             # get periodogram
             period,power = self.periodogram(
                 custom_periods=custom_periods,
-                x=x,y=y,yerr=yerr,method=method,model=model,multiprocessing=multiprocessing,**kwargs
+                x=x,y=y,yerr=yerr,method=method,model=model,p0_func=p0_func,multiprocessing=multiprocessing,**kwargs
                 )
             period = period[power==power.max()][0]
 
@@ -528,7 +576,7 @@ class photdata:
     def open_widget(self):
         raise NotImplementedError('in development')
 
-    def plot_lc(self,period=None,invert_yaxis=True,**kwargs):
+    def plot_lc(self,period=None,invert_yaxis=True,figsize=(8,4),ax=None,return_axis=False,**kwargs):
         '''
         plots phase-folded light curve.
         '''
@@ -540,7 +588,8 @@ class photdata:
         phase = (self.x % period)/period
 
         # plot
-        fig, ax = plt.subplots(1,1,figsize=(8,4))
+        if ax=None:
+            fig, ax = plt.subplots(1,1,figsize=figsize)
         if 'color' not in kwargs.keys():
             kwargs['color'] = 'k'
         if 'fmt' not in kwargs.keys():
@@ -551,6 +600,8 @@ class photdata:
         ax.errorbar(phase+1,self.y,self.yerr,**kwargs)
         if invert_yaxis:
             ax.invert_yaxis()
+        if return_axis:
+            return ax
 
     def calc_FAP(self,period,):
         '''
