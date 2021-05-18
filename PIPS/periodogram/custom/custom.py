@@ -110,7 +110,8 @@ def periodogram_custom(x,y,yerr,p_min=None,p_max=None,N=None,p0_func=None,multip
     if custom_periods is not None:
         periods = custom_periods
     elif (p_min is not None) and (p_max is not None):
-        periods = np.linspace(p_min,p_max,N)
+        # periods = np.linspace(p_min,p_max,N)
+        periods = 1/np.linspace(1/p_max,1/p_min,N)
     else:
         raise ValueError('period range or period list are not given')
 

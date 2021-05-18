@@ -56,7 +56,8 @@ def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom
     if custom_periods is not None:
         periods = custom_periods
     elif (p_min is not None) and (p_max is not None):
-        periods = np.linspace(p_min,p_max,N)
+        # periods = np.linspace(p_min,p_max,N)
+        periods = 1/np.linspace(1/p_max,1/p_min,N)
     else:
         raise ValueError('period range or period list are not given')
 

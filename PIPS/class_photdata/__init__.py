@@ -307,7 +307,10 @@ class photdata:
         x,y,yerr = self.prepare_data(x,y,yerr)
         
         # determine sampling size
-        N_auto = int(N0 * (x.max()-x.min()) * (1/p_min))
+        T = x.max()-x.min()
+        period_width_min = p_min**2 *T / (T**2-0.25)
+        # N_auto = int(N0*(p_max-p_min)/period_width_min)
+        N_auto = int((1/p_min-1/p_max)/(1/T)*N0)
         if N==None:
             # VanderPlas 2018 eq. 44
             N = N_auto
@@ -379,7 +382,9 @@ class photdata:
         if debug:
             print(f'{time.time()-t0:.3f}s --- detecting top {peaks_to_test} peaks...')
         peak_idx = []
-        peak_width = 1/(x.max()-x.min())
+
+        T = x.max()-x.min()
+        peak_width = p_min**2 *T / (T**2-0.25)
         peak_idx_width = int(peak_width/(period[1]-period[0]))
         idx_tmp = 0
         sorted_idx = np.flip(power.argsort())
