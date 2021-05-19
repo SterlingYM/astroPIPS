@@ -8,7 +8,9 @@ import warnings
 warnings.simplefilter("ignore", OptimizeWarning)
 import copy
 
+from ..periodogram import Periodogram
 from ..periodogram.custom import periodogram_custom, get_bestfit, check_MODEL_KWARGS, MODELS, P0_FUNCS
+from ..periodogram.custom import get_chi2 as _get_chi2
 from ..periodogram.linalg import periodogram_fast
 from ..periodogram.custom.models.Fourier import fourier, fourier_p0
 from ..periodogram.custom.models.Gaussian import gaussian, gaussian_p0
@@ -72,6 +74,7 @@ class photdata:
         self.epoch_offset = None
         self.meanmag = None # based on best-fit function: requires period
         self.multiprocessing = True
+        self.periodogram = Periodogram(photdata=self)
 
     def __repr__(self):
         return f"Photdata ({self.label},{self.band},{len(self.x)},{self.period})"
@@ -264,6 +267,31 @@ class photdata:
 
         return x_th,y_th
 
+    def get_chi2(self,x=None,y=None,yerr=None,period=None,model='Fourier',p0_func=None,x_th=None,**kwargs):
+        '''
+        Calculates the best-fit smooth curve.
+        '''
+        # prepare data
+        if model=='Fourier':
+            if 'Nterms' in kwargs:
+                Nterms = kwargs['Nterms']
+            else:
+                kwargs['Nterms'] = 5        
+        x,y,yerr = self.prepare_data(x,y,yerr)
+        
+        # use automatically determined period if period is not explicitly given
+        if period == None:
+            if self.period == None:
+                period, _ = self.get_period(model=model,p0_func=p0_func,**kwargs)
+            period = self.period
+
+        # select models
+        MODEL, P0_FUNC, KWARGS = self.check_model(model, p0_func, kwarg_for_helper=True,**kwargs)
+
+        # get bestfit chi-square
+        chi2 = _get_chi2(MODEL,P0_FUNC,x,y,yerr,period,**KWARGS)
+        return chi2
+
     def get_bestfit_amplitude(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5,**kwargs):
         '''
         calculates the amplitude of best-fit curve.
@@ -279,73 +307,81 @@ class photdata:
         _,y_th = self.get_bestfit_curve(x,y,yerr,period,model,Nterms,**kwargs)
         return np.mean(y_th)
 
+    def get_SR(self,power):
+        return power / power.max()
+
+    def get_SDE(self,power,peak_only=False):
+        SR = self.get_SR(power)
+        if peak_only:
+            return (1-SR.mean())/SR.std()
+        else:
+            return (SR-SR.mean())/SR.std()
+
+    def plot_lc(self,period=None,invert_yaxis=True,figsize=(8,4),ax=None,return_axis=False,title=None,plot_bestfit=False,model_color='yellowgreen',model_kwargs={},ylabel='mag',**kwargs):
+        '''
+        plots phase-folded light curve.
+        '''
+        if period is None:
+            if self.period is None:
+                raise ValueError('folding period needs to be specified')
+            else:
+                period = self.period
+        phase = (self.x % period)/period
+
+        if title is None:
+            title = self.label
+        
+        # plot
+        if ax==None:
+            fig, ax = plt.subplots(1,1,figsize=figsize)
+        if 'color' not in kwargs.keys():
+            kwargs['color'] = 'k'
+        if 'fmt' not in kwargs.keys():
+            kwargs['fmt'] = 'o'
+        if 'ms' not in kwargs.keys():
+            kwargs['ms'] = 2
+        ax.errorbar(phase,self.y,self.yerr,**kwargs)
+        ax.errorbar(phase+1,self.y,self.yerr,**kwargs)
+        ax.set_title(title,fontsize=16)
+        ax.set_xlabel('Phase',fontsize=16)
+        ax.set_ylabel(ylabel,fontsize=16)
+
+        # options
+        if invert_yaxis and not ax.yaxis_inverted():
+            ax.invert_yaxis()
+        if plot_bestfit:
+            x_th,y_th = self.get_bestfit_curve(**model_kwargs)
+            plt.plot(x_th/period,y_th,lw=3,c=model_color)
+            plt.plot(x_th/period+1,y_th,lw=3,c=model_color)
+        if return_axis:
+            return ax
+ 
+    def get_epoch_offset(self,period=None,x=None,y=None,yerr=None,model='Fourier',N=1000,Nterms=5,**kwargs):
+        '''
+        TODO: define the 'maxima': is it the minimum in magnitude or maximum in any value? current implementation -> 'magnitude' interpretation only
+        inputs:
+            N: number of samples across the phase (single period). The peak should have width W >> P/1000.
+        '''
+        # use default values if data is not explicitly given
+        x,y,yerr = self.prepare_data(x,y,yerr)
+
+        # use automatically determined period if period is not explicitly given
+        if period == None:
+            if self.period == None:
+                period, _ = self.get_period(**kwargs)
+            period = self.period
+        
+        # get the phase offset (phase of maxima for raw data)
+        x_th = np.linspace(0,period,N)
+        _, y_th = self.get_bestfit_curve(x=x,y=y,yerr=yerr,period=period,model=model,Nterms=Nterms,x_th=x_th)
+        epoch_offset = x_th[np.argmin(y_th)]
+        self.epoch_offset = epoch_offset
+        return epoch_offset
+
     #################
     # analysis tools
     #################      
-    def periodogram(self,p_min=0.1,p_max=4,custom_periods=None,N=None,method='fast',x=None,y=None,yerr=None,plot=False,multiprocessing=True,N0=5,model='Fourier',raise_warnings=True,**kwargs):
-        '''
-        Returns periodogram.
-        optional inputs:
-            custom_periods(float list): custom list of periods at which periodograms are evaluated at
-            xdata(float list)
-            ydata(float list)
-            yerr_data(float list)
-            plot(bool)
-            N(int)
-            N0(int): number of samples per peak width when N is not specified.
-            method(str): 'fast' for multi-term Fourier model or 'custom' for more complicated models
-            model(str): model function. This is only effective if method=='custom'.
-        returns: 
-            period
-            power 
-            (and axis if plot==True)
-        '''
-        # check global setting for mp
-        multiprocessing = multiprocessing and self.multiprocessing
-
-        # prepare data
-        x,y,yerr = self.prepare_data(x,y,yerr)
-        
-        # determine sampling size
-        T = x.max()-x.min()
-        period_width_min = p_min**2 *T / (T**2-0.25)
-        # N_auto = int(N0*(p_max-p_min)/period_width_min)
-        N_auto = int((1/p_min-1/p_max)/(1/T)*N0)
-        if N==None:
-            # VanderPlas 2018 eq. 44
-            N = N_auto
-        elif (N < N_auto) and raise_warnings:
-            print(f'warning: N={N} is smaller than recommended size N={N_auto}')
-
-        # implemented periodogram algorithms
-        METHODS = {
-            'fast': periodogram_fast,
-            'custom': periodogram_custom
-        }
-
-        # default Nterms handling: TODO: make this more elegant
-        if method=='fast':
-            if 'Nterms' in kwargs:
-                Nterms = kwargs['Nterms']
-            else:
-                kwargs['Nterms'] = 5
-                Nterms = 5
-
-        METHOD_KWARGS = {
-            'fast': {
-                'p_min':p_min,'p_max':p_max,'custom_periods':custom_periods,'N':N,'x':x,'y':y,'yerr':yerr,'multiprocessing':multiprocessing,'model':model
-                },
-            'custom':{
-                'p_min':p_min,'p_max':p_max,'custom_periods':custom_periods,'N':N,'x':x,'y':y,'yerr':yerr,'multiprocessing':multiprocessing,'model':model
-                }
-        }
-        kwargs.update(METHOD_KWARGS[method])
-        
-        # main
-        periods,power = METHODS[method](**kwargs)
-        return periods, power
-    
-    def get_period(self,p_min=0.1,p_max=4,x=None,y=None,yerr=None,method='fast',model='Fourier',p0_func=None,peaks_to_test=5,N_peak_test=500,debug=False,force_refine=False,default_err=1e-6,no_overwrite=False,multiprocessing=True,**kwargs):
+    def get_period(self,p_min=0.1,p_max=4,x=None,y=None,yerr=None,method='fast',model='Fourier',p0_func=None,peaks_to_test=5,N_peak_test=500,debug=False,force_refine=False,default_err=1e-6,no_overwrite=False,multiprocessing=True,return_SDE=False,**kwargs):
         '''
         detects period.
         '''
@@ -377,6 +413,9 @@ class photdata:
         if debug:
             print(f'{time.time()-t0:.3f}s --- getting a periodogram...')
         period,power = self.periodogram(p_min=p_min,p_max=p_max,x=x,y=y,yerr=yerr,method=method,model=model,p0_func=p0_func,multiprocessing=multiprocessing,**kwargs)
+
+        # calculate peak SDE
+        period_SDE = self.get_SDE(power,peak_only=True)
 
         # select top peaks_to_test independent peaks
         if debug:
@@ -488,9 +527,13 @@ class photdata:
         if not no_overwrite:
             self.period = period
             self.period_err = period_err
+            self.period_SDE = period_SDE
         if debug:
             print(f'{time.time()-t0:.3f}s ---','period = {:.{precision}f} +- {:.{precision}f}d'.format(period,period_err,precision=5 if period_err==np.inf else int(abs(np.log10(period_err))+2)))
             print(f'{time.time()-t0:.3f}s --- process completed.')
+
+        if return_SDE == True:
+            return period,period_err,period_SDE
         return period,period_err
    
     def get_period_multi(self,N,FAR_max=1e-3,model='Fourier',p0_func=None,**kwargs):
@@ -583,62 +626,3 @@ class photdata:
     def open_widget(self):
         raise NotImplementedError('in development')
 
-    def plot_lc(self,period=None,invert_yaxis=True,figsize=(8,4),ax=None,return_axis=False,**kwargs):
-        '''
-        plots phase-folded light curve.
-        '''
-        if period is None:
-            if self.period is None:
-                raise ValueError('folding period needs to be specified')
-            else:
-                period = self.period
-        phase = (self.x % period)/period
-
-        # plot
-        if ax==None:
-            fig, ax = plt.subplots(1,1,figsize=figsize)
-        if 'color' not in kwargs.keys():
-            kwargs['color'] = 'k'
-        if 'fmt' not in kwargs.keys():
-            kwargs['fmt'] = 'o'
-        if 'ms' not in kwargs.keys():
-            kwargs['ms'] = 2
-        ax.errorbar(phase,self.y,self.yerr,**kwargs)
-        ax.errorbar(phase+1,self.y,self.yerr,**kwargs)
-        if invert_yaxis:
-            ax.invert_yaxis()
-        if return_axis:
-            return ax
-
-    def calc_FAP(self,period,):
-        '''
-        ** THIS FUNCTION IS WORK IN PROGRESS **
-        Calculates the false alarm probability of signal at specified period.
-        Based on VanderPlas+ 2018.
-        inputs:
-            period
-            method: {'range','freq','Baluev'}
-        '''
-        raise NotImplementedError
- 
-    def get_epoch_offset(self,period=None,x=None,y=None,yerr=None,model='Fourier',N=1000,Nterms=5,**kwargs):
-        '''
-        TODO: define the 'maxima': is it the minimum in magnitude or maximum in any value? current implementation -> 'magnitude' interpretation only
-        inputs:
-            N: number of samples across the phase (single period). The peak should have width W >> P/1000.
-        '''
-        # use default values if data is not explicitly given
-        x,y,yerr = self.prepare_data(x,y,yerr)
-
-        # use automatically determined period if period is not explicitly given
-        if period == None:
-            if self.period == None:
-                period, _ = self.get_period(**kwargs)
-            period = self.period
-        
-        # get the phase offset (phase of maxima for raw data)
-        x_th = np.linspace(0,period,N)
-        _, y_th = self.get_bestfit_curve(x=x,y=y,yerr=yerr,period=period,model=model,Nterms=Nterms,x_th=x_th)
-        epoch_offset = x_th[np.argmin(y_th)]
-        self.epoch_offset = epoch_offset
-        return epoch_offset
