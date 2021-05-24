@@ -1,6 +1,7 @@
 import numpy as np
 from ..class_photdata import photdata
 from scipy.optimize import curve_fit
+import matplotlib.pyplot as plt
 
 def group_data(star,separation=100):
     sep = star.x[1:]-star.x[:-1]
@@ -40,22 +41,24 @@ class longdata:
             self.x_means.append(star.x.mean())
         self.all_data = all_data
 
-    def run_OC(self,period=None,method='fast',model='Fourier',p0_func=None,round_mode='round',**kwargs):
+    def run_OC(self,p_ref=None,template_idx=None,method='fast',model='Fourier',p0_func=None,round_mode='round',**kwargs):
         
         # generate concatenated data
         self.prep_alldata()
 
-        # prepare 'mean' period
-        if period==None:
-            period,_ = self.all_data.get_period(**kwargs)
-        else:
-            self.all_data.period = period
-        self.p_ref = period
-
         # prepare 'mean' curve
-        model_popt = self.all_data.get_bestfit_curve(period=period,return_params=True,model='Fourier',p0_func=None,**kwargs)
+        if template_idx==None:
+            print('template is not specified: using the first photdata as template')
+            template_idx = 0
+        template_period,_ = self.data[template_idx].get_period(**kwargs)
+        model_popt = self.data[template_idx].get_bestfit_curve(period=template_period,return_params=True,model='Fourier',p0_func=None,**kwargs)
         self.model_popt = model_popt
 
+        # prepare 'mean' period
+        if p_ref == None:
+            print('p_ref not given: using the template period as p_ref')
+            p_ref = template_period
+            
         # select models
         if method=='fast':
             if 'Nterms' in kwargs:
@@ -73,15 +76,15 @@ class longdata:
                     star.period=np.nan
 
             if round_mode=='round':
-                bounds = [[-period/2,-np.inf],[period/2,np.inf]]
+                bounds = ([-p_ref/2,-np.inf],[p_ref/2,np.inf])
             elif round_mode=='floor':
-                bounds = [[0,-np.inf],[period,np.inf]]
+                bounds = ([0,-np.inf],[p_ref,np.inf])
             elif round_mode=='ceil':
-                bounds = [[-period,-np.inf],[0,np.inf]]
+                bounds = ([-p_ref,-np.inf],[0,np.inf])
             else:
                 raise ValueError(f'incorrect round_mode: {round_mode} not in '+'{\'round\',\'floor\',\'ceil\'}')
             popt,pcov = curve_fit(
-                lambda x,mu,nu: MODEL(x-mu,period,model_popt,**KWARGS)+nu,
+                lambda x,mu,nu: MODEL(x-mu,p_ref,model_popt,**KWARGS)+nu,
                 star.x,
                 star.y,
                 sigma=star.yerr,
@@ -91,7 +94,30 @@ class longdata:
             self.oc.append(popt[0])
             self.oc_err.append(np.sqrt(np.diag(pcov))[0])
             self.y_offsets.append(popt[1])
+        self.p_ref = p_ref
+        return self
 
+    def plot_oc(self,ax=None,figsize=(8,5),return_axis=False,**kwargs):
+        if ax==None:
+            fig,ax = plt.subplots(1,1,figsize=(8,5))
+        ax.errorbar(self.x_means,self.oc,self.oc_err,fmt='o',**kwargs)
+        if return_axis:
+            return ax
+
+    def plot_lc(self,ax=None,figsize=(8,5),return_axis=False,invert_yaxis=True,**kwargs):
+        if ax==None:
+            fig,ax = plt.subplots(1,1,figsize=(8,5))
+
+        prop_cycle = plt.rcParams['axes.prop_cycle']
+        colors = prop_cycle.by_key()['color']
+        for star,color in zip(self.data,colors):
+            ax.errorbar(star.x%self.p_ref,star.y,star.yerr,fmt='o',ms=1,label=star.label,color=color,**kwargs)
+            ax.errorbar(star.x%self.p_ref+self.p_ref,star.y,star.yerr,fmt='o',ms=1,color=color,**kwargs)
+        ax.legend()
+        if invert_yaxis:
+            ax.invert_yaxis()
+        if return_axis:
+            return ax
 
 
         
