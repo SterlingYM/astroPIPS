@@ -235,7 +235,7 @@ class photdata:
             raise ValueError('Input data is incomplete. All x, y, and yerr are needed.')
         return x,y,yerr
 
-    def get_bestfit_curve(self,x=None,y=None,yerr=None,period=None,model='Fourier',p0_func=None,x_th=None,**kwargs):
+    def get_bestfit_curve(self,x=None,y=None,yerr=None,period=None,model='Fourier',p0_func=None,x_th=None,return_params=False,**kwargs):
         '''
         Calculates the best-fit smooth curve.
         '''
@@ -258,7 +258,9 @@ class photdata:
 
         # get bestfit model-parameters
         popt = get_bestfit(MODEL,P0_FUNC,x,y,yerr,period,return_yfit=False,return_params=True,**KWARGS)
-        
+        if return_params:
+            return popt
+
         # construct theoretical curve
         MODEL, P0_FUNC, KWARGS = self.check_model(model, p0_func, kwarg_for_helper=False,**kwargs)
         if x_th is None:
@@ -381,7 +383,7 @@ class photdata:
     #################
     # analysis tools
     #################      
-    def get_period(self,p_min=0.1,p_max=4,x=None,y=None,yerr=None,method='fast',model='Fourier',p0_func=None,peaks_to_test=5,N_peak_test=500,debug=False,force_refine=False,default_err=1e-6,no_overwrite=False,multiprocessing=True,return_SDE=False,**kwargs):
+    def get_period(self,p_min=0.1,p_max=4,x=None,y=None,yerr=None,method='fast',model='Fourier',p0_func=None,peaks_to_test=5,N_peak_test=500,debug=False,force_refine=False,default_err=1e-6,no_overwrite=False,multiprocessing=True,return_SDE=False,ignore_warning=False,**kwargs):
         '''
         detects period.
         '''
@@ -514,8 +516,9 @@ class photdata:
             print(f'{time.time()-t0:.3f}s --- * fitted period - peak period = {fit_peak_deviation:.2e}')
             print(f'{time.time()-t0:.3f}s --- * expected deviation size = {period_err:.2e}')
         if (fit_peak_deviation > 2*period_err) or (period_err==np.inf):
-            warningMessage = 'warning: provided uncertainty may not be accurate. Try increasing sampling size (N_peak_test, default 500) and/or turn on the force_refine option.'
-            print(warningMessage)
+            if not ignore_warning:
+                warningMessage = 'warning: provided uncertainty may not be accurate. Try increasing sampling size (N_peak_test, default 500) and/or turn on the force_refine option.'
+                print(warningMessage)
         elif debug:
             print(f'{time.time()-t0:.3f}s --- * period error validated')
 

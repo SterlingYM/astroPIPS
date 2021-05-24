@@ -90,7 +90,7 @@ class Periodogram:
         periods,power = METHODS[method](**kwargs)
         return periods,power
 
-    def zoom(self,p_min=None,p_max=None,**kwargs):
+    def zoom(self,p_min=None,p_max=None,width_factor=2,**kwargs):
         kwargs = kwargs.update({'return_axis':True})
         period_at_max = self.periods[self.power==self.power.max()]
 
@@ -98,7 +98,7 @@ class Periodogram:
         # estimate peak width
             T = self.photdata.x.max()-self.photdata.x.min()
             peak_width = period_at_max**2 *T / (T**2-0.25)
-            width = peak_width * 2
+            width = peak_width * width_factor
             p_min = period_at_max - width
             p_max = period_at_max + width
 
