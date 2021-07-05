@@ -32,8 +32,8 @@ __author__ = "Y. Murakami, A. Savel, J. Sunseri, A. Hoffman"
 __maintainer__ = "Y. Murakami"
 __email__ = "sterling.astro@berkeley.edu"
 __license__ = "MIT"
-__version__ = "0.3.0-alpha.6"
-__release__ = "0.3.0-alpha.6"
+__version__ = "0.3.0-alpha.7"
+__release__ = "0.3.0-alpha.7"
 __description__ = "Processes photometric data for variable stars"
 
 def about():
