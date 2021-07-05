@@ -47,7 +47,7 @@ class photdata:
 
     functions (data processing):
         periodogram(self,p_min=0.1,p_max=4,custom_periods=None,N=None,method='fast',x=None,y=None,yerr=None,plot=False,multiprocessing=True,Nterms=5,N0=5,model='Fourier',raise_warnings=True,**kwargs)
-        get_period(self,p_min=0.1,p_max=4,x=None,y=None,yerr=None,Nterms=5,method='fast',model='Fourier',peaks_to_test=5,N_peak_test=500,debug=False,force_refine=False,default_err=1e-6,**kwargs)
+        get_period(self,p_min=0.1,p_max=4,x=None,y=None,yerr=None,Nterms=5,method='fast',model='Fourier',peaks_to_test=5,R_peak=500,debug=False,force_refine=False,default_err=1e-6,**kwargs)
         get_period_multi(self,N,FAR_max=1e-3,model='Fourier',Nterms=5,**kwargs)
         amplitude_spectrum(self,p_min,p_max,N,model='Fourier',grid=10000,plot=False,Nterms=5,**kwargs)
         get_bestfit(N,model='Fourier',period=None,plot=True,return_curve=False,return_params=False)
@@ -383,7 +383,11 @@ class photdata:
     #################
     # analysis tools
     #################      
-    def get_period(self,p_min=0.1,p_max=4,x=None,y=None,yerr=None,method='fast',model='Fourier',p0_func=None,peaks_to_test=5,N_peak_test=500,debug=False,force_refine=False,default_err=1e-6,no_overwrite=False,multiprocessing=True,return_SDE=False,ignore_warning=False,**kwargs):
+    def get_period(self,p_min=0.1,p_max=4,x=None,y=None,yerr=None,
+        method='fast',model='Fourier',p0_func=None,
+        peaks_to_test=5,R_peak=500,N0=5,debug=False,force_refine=False,
+        default_err=1e-6,no_overwrite=False,multiprocessing=True,
+        return_SDE=False,ignore_warning=False,**kwargs):
         '''
         detects period.
         '''
@@ -414,7 +418,9 @@ class photdata:
         # get periodogram
         if debug:
             print(f'{time.time()-t0:.3f}s --- getting a periodogram...')
-        period,power = self.periodogram(p_min=p_min,p_max=p_max,x=x,y=y,yerr=yerr,method=method,model=model,p0_func=p0_func,multiprocessing=multiprocessing,**kwargs)
+        period,power = self.periodogram(p_min=p_min,p_max=p_max,x=x,y=y,yerr=yerr,
+                            method=method,model=model,p0_func=p0_func,N0=N0,
+                            multiprocessing=multiprocessing,**kwargs)
 
         # calculate peak SDE
         period_SDE = self.get_SDE(power,peak_only=True)
@@ -440,11 +446,11 @@ class photdata:
             print(f'{time.time()-t0:.3f}s --- preparing for finer sampling near peaks...')
         custom_periods = np.array([])
         for peak in peak_periods:
-            custom_periods = np.concatenate((custom_periods,np.linspace(peak-peak_width,peak+peak_width,N_peak_test)))
+            custom_periods = np.concatenate((custom_periods,np.linspace(peak-peak_width,peak+peak_width,R_peak)))
         if debug:
             print(f'{time.time()-t0:.3f}s --- performing finer sampling near peaks...')
         period,power = self.periodogram(
-            custom_periods=custom_periods,
+            custom_periods=custom_periods,N0=N0,
             x=x,y=y,yerr=yerr,method=method,model=model,p0_func=p0_func,
             multiprocessing=multiprocessing,**kwargs
             )
@@ -482,22 +488,22 @@ class photdata:
             period_err = 0 
 
         # re-sample if sampling size is not fine enough
-        if (period_err < (2*peak_width/N_peak_test)*10) or force_refine:
+        if (period_err < (2*peak_width/R_peak)*10) or force_refine:
             if debug:
                 print(f'{time.time()-t0:.3f}s --- refining samples...')
                 print(f'{time.time()-t0:.3f}s --- refining search width = {peak_width/10:.3e}')
 
             # prepare new search width -- narrower and thus refined
             #TODO: discuss this method
-            new_search_width = peak_width/N_peak_test*100 
-            custom_periods = np.linspace(period-new_search_width,period+new_search_width,N_peak_test)
+            new_search_width = peak_width/R_peak*100 
+            custom_periods = np.linspace(period-new_search_width,period+new_search_width,R_peak)
 
             # get periodogram
-            period,power = self.periodogram(
-                custom_periods=custom_periods,
+            periods,power = self.periodogram(
+                custom_periods=custom_periods,N0=N0,
                 x=x,y=y,yerr=yerr,method=method,model=model,p0_func=p0_func,multiprocessing=multiprocessing,**kwargs
                 )
-            period = period[power==power.max()][0]
+            period = periods[power==power.max()][0]
 
             # get uncertainty
             KWARGS['maxfev'] = 100000
@@ -517,7 +523,7 @@ class photdata:
             print(f'{time.time()-t0:.3f}s --- * expected deviation size = {period_err:.2e}')
         if (fit_peak_deviation > 2*period_err) or (period_err==np.inf):
             if not ignore_warning:
-                warningMessage = 'warning: provided uncertainty may not be accurate. Try increasing sampling size (N_peak_test, default 500) and/or turn on the force_refine option.'
+                warningMessage = 'warning: provided uncertainty may not be accurate. Try increasing sampling size (N0, default 5).'
                 print(warningMessage)
         elif debug:
             print(f'{time.time()-t0:.3f}s --- * period error validated')

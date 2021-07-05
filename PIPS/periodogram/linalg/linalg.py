@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 from multiprocessing import Pool
 
-def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom_periods=None,model='Fourier',**kwargs):
+def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom_periods=None,model='Fourier',repr_mode='chisq',**kwargs):
     '''
     linear algebra-based periodogram.
     '''
@@ -50,7 +50,10 @@ def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom
         XTY = np.dot(X.T,Y)
         params = np.linalg.solve(XTX,XTY)
         Yfit = np.dot(X,params)
-        return np.dot(Y,Yfit)+np.dot(Y-Yfit,Yfit)
+        if repr_mode == 'chisq':
+            return np.dot(Y,Yfit)+np.dot(Y-Yfit,Yfit)
+        elif repr_mode == 'likelihood':
+            return np.prod((1/(np.sqrt(2*np.pi)*yerr)) * np.exp(-0.5*(Y-Yfit)**2))
 
     # period prep
     if custom_periods is not None:

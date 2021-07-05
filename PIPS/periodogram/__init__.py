@@ -35,7 +35,10 @@ class Periodogram:
             self.current = 0
             raise StopIteration
 
-    def _periodogram(self,p_min=0.1,p_max=4,custom_periods=None,N=None,method='fast',x=None,y=None,yerr=None,plot=False,multiprocessing=True,N0=5,model='Fourier',raise_warnings=True,**kwargs):
+    def _periodogram(self,p_min=0.1,p_max=4,custom_periods=None,N=None,
+            method='fast',x=None,y=None,yerr=None,plot=False,
+            multiprocessing=True,N0=5,model='Fourier',
+            raise_warnings=True,**kwargs):
         '''
         doc: todo
         '''
@@ -69,7 +72,7 @@ class Periodogram:
         }
 
         # default Nterms handling: TODO: make this more elegant
-        if method=='fast':
+        if method=='fast' or model=='Fourier':
             if 'Nterms' in kwargs:
                 Nterms = kwargs['Nterms']
             else:
@@ -88,6 +91,10 @@ class Periodogram:
         
         # main
         periods,power = METHODS[method](**kwargs)
+        
+        if 'repr_mode' in kwargs:
+            if kwargs['repr_mode'] == 'likelihood':
+                self.mode='likelihood'
         return periods,power
 
     def zoom(self,p_min=None,p_max=None,width_factor=2,**kwargs):
@@ -105,7 +112,7 @@ class Periodogram:
         cut = (self.periods >= p_min) & (self.periods <= p_max)
         new_periods = self.periods[cut]
         new_power = self.power[cut]
-        return Periodogram(self.photdata,new_periods,new_power,self.kwargs)
+        return Periodogram(self.photdata,new_periods,new_power,self.kwargs,mode=self.mode)
 
     def refine(self,factor=10):
         p_min = self.periods.min()
@@ -121,21 +128,13 @@ class Periodogram:
             'custom_periods':custom_periods
             })
         periods,power = self._periodogram(**kwargs)
-        return Periodogram(self.photdata,periods,power,self.kwargs)
+        return Periodogram(self.photdata,periods,power,self.kwargs,mode=self.mode)
 
     def plot(self,ax=None,return_axis=False,c='#454545',show_peak=False,**kwargs):
         periods,power = self
 
         if ax==None:
             fig,ax = plt.subplots(1,1,figsize=(13,3))
-
-        # switch between different types
-        if self.mode == 'regular':
-            ax.set_ylim(0,1)
-        elif self.mode == 'SR':
-            ax.set_ylim(0,1)
-        elif self.mode == 'SDE':
-            ax.set_ylim(0,power.max())
 
         # plot
         ax.plot(periods,power,c=c,lw=1)
@@ -149,6 +148,15 @@ class Periodogram:
         if return_axis:
             return ax
 
+        # switch between different types
+        if self.mode == 'regular':
+            ax.set_ylim(0,1)
+        elif self.mode == 'SR':
+            ax.set_ylim(0,1)
+        elif self.mode == 'SDE':
+            ax.set_ylim(0,power.max())
+        elif self.mode == 'likelihood':
+            ax.set_ylim(0,power.max()*1.05)
 
     def SR(self):
         SR = self.power / self.power.max()

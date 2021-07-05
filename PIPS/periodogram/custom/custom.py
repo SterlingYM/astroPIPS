@@ -81,13 +81,24 @@ def get_chi2(MODEL,p0_func,x,y,yerr,period,**kwargs):
     y_fit = get_bestfit(MODEL,p0_func,x,y,yerr,period,return_yfit=True,return_params=False,**kwargs)
     return np.sum((y-y_fit)**2/yerr**2)
 
+def get_likelihood(MODEL,p0_func,x,y,yerr,period,**kwargs):
+    '''
+    returns Gaussian likelihood for the best-fit function at given folding period.
+    '''
+    y_fit = get_bestfit(MODEL,p0_func,x,y,yerr,period,return_yfit=True,return_params=False,**kwargs)
+    lik = np.prod(np.exp(-0.5*(y-y_fit)**2/(yerr**2)) / (np.sqrt(2*np.pi)*yerr))
+    # return (1/len(x)) * np.sum(np.exp(-0.5*(y-y_fit)**2/yerr**2) / (np.sqrt(2*np.pi)*yerr))
+    # lik = -0.5*np.sum((y-y_fit)**2/yerr**2+np.log(2*np.pi*yerr**2))
+    # return np.exp(lik)
+    return lik
+
 def get_chi2ref(x,y,yerr):
     '''
     returns non-varying reference of chi2 (model independent)
     '''
     return np.sum((y-np.mean(y))**2/(yerr)**2)
 
-def periodogram_custom(x,y,yerr,p_min=None,p_max=None,N=None,p0_func=None,multiprocessing=True,model='Fourier',custom_periods=None,**kwargs):
+def periodogram_custom(x,y,yerr,p_min=None,p_max=None,N=None,p0_func=None,multiprocessing=True,model='Fourier',custom_periods=None,repr_mode='chisq',**kwargs):
     '''
     model-dependent, individual fitting-based periodogram. Can be customized for any model.
     '''
@@ -116,9 +127,13 @@ def periodogram_custom(x,y,yerr,p_min=None,p_max=None,N=None,p0_func=None,multip
         raise ValueError('period range or period list are not given')
 
     # main
+    REPRs = {
+        'chisq':get_chi2,
+        'likelihood':get_likelihood
+    }
     global mp_worker
     def mp_worker(period):
-        return get_chi2(MODEL=MODEL,p0_func=P0_FUNC,x=x,y=y,yerr=yerr,period=period,**KWARGS)
+        return REPRs[repr_mode](MODEL=MODEL,p0_func=P0_FUNC,x=x,y=y,yerr=yerr,period=period,**KWARGS)
 
     if multiprocessing==True:
         pool = Pool()
@@ -127,6 +142,10 @@ def periodogram_custom(x,y,yerr,p_min=None,p_max=None,N=None,p0_func=None,multip
         pool.join()
     else:
         chi2 = np.array(list(map(mp_worker,periods)))
+    
+    if repr_mode=='likelihood':
+        return periods,chi2
+
     chi2ref = get_chi2ref(x,y,yerr)
     power = 1 - chi2/chi2ref
 
