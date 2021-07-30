@@ -27,13 +27,13 @@ from .class_StellarModels import *
 # from .class_visualize import visualize
 
 
-__uri__ = "https://PIPS.readthedocs.io" # tbd, may change
+__uri__ = "https://PIPS.readthedocs.io" 
 __author__ = "Y. Murakami, A. Savel, J. Sunseri, A. Hoffman"
 __maintainer__ = "Y. Murakami"
 __email__ = "sterling.astro@berkeley.edu"
 __license__ = "MIT"
-__version__ = "0.3.0-alpha.7"
-__release__ = "0.3.0-alpha.7"
+__version__ = "0.3.0-alpha.8"
+__release__ = "0.3.0-alpha.8"
 __description__ = "Processes photometric data for variable stars"
 
 def about():

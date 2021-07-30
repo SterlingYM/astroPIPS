@@ -53,7 +53,9 @@ def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom
         if repr_mode == 'chisq':
             return np.dot(Y,Yfit)+np.dot(Y-Yfit,Yfit)
         elif repr_mode == 'likelihood':
-            return np.prod((1/(np.sqrt(2*np.pi)*yerr)) * np.exp(-0.5*(Y-Yfit)**2))
+            return np.prod(np.exp(-0.5*(Y-Yfit)**2)/(np.sqrt(2*np.pi)*yerr))
+        elif repr_mode == 'log-likelihood':
+            return -0.5*np.sum((Y-Yfit)**2 + np.log(2*np.pi*yerr**2))
 
     # period prep
     if custom_periods is not None:
@@ -74,6 +76,8 @@ def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom
         chi2 = np.asarray(list(map(calc_power,periods)))
 
     # normalize
+    if repr_mode=='likelihood' or repr_mode=='log-likelihood':
+        return periods,chi2
     chi2ref = np.dot(Y,Y)
     power = chi2/chi2ref
     return periods,power

@@ -93,8 +93,10 @@ class Periodogram:
         periods,power = METHODS[method](**kwargs)
         
         if 'repr_mode' in kwargs:
-            if kwargs['repr_mode'] == 'likelihood':
+            if kwargs['repr_mode'] == 'likelihood' or kwargs['repr_mode'] == 'likelihood':
                 self.mode='likelihood'
+        periods = np.asarray(periods)
+        power   = np.asarray(power)
         return periods,power
 
     def zoom(self,p_min=None,p_max=None,width_factor=2,**kwargs):

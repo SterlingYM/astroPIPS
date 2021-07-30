@@ -235,7 +235,7 @@ class photdata:
             raise ValueError('Input data is incomplete. All x, y, and yerr are needed.')
         return x,y,yerr
 
-    def get_bestfit_curve(self,x=None,y=None,yerr=None,period=None,model='Fourier',p0_func=None,x_th=None,return_params=False,**kwargs):
+    def get_bestfit_curve(self,x=None,y=None,yerr=None,period=None,model='Fourier',p0_func=None,x_th=None,return_params=False,return_param_err=False,use_original_x=False,**kwargs):
         '''
         Calculates the best-fit smooth curve.
         '''
@@ -257,14 +257,19 @@ class photdata:
         MODEL, P0_FUNC, KWARGS = self.check_model(model, p0_func, kwarg_for_helper=True,**kwargs)
 
         # get bestfit model-parameters
-        popt = get_bestfit(MODEL,P0_FUNC,x,y,yerr,period,return_yfit=False,return_params=True,**KWARGS)
+        popt,pcov = get_bestfit(MODEL,P0_FUNC,x,y,yerr,period,return_yfit=False,return_params=True,return_pcov = True,**KWARGS)
         if return_params:
+            if return_param_err:
+                return popt,np.sqrt(np.diag(pcov))
             return popt
 
         # construct theoretical curve
         MODEL, P0_FUNC, KWARGS = self.check_model(model, p0_func, kwarg_for_helper=False,**kwargs)
         if x_th is None:
-            x_th = np.linspace(0,period,1000)
+            if use_original_x:
+                x_th = self.x
+            else:
+                x_th = np.linspace(0,period,1000)
         y_th = MODEL(x_th,period,np.array(popt),**KWARGS)
 
         return x_th,y_th
@@ -382,12 +387,24 @@ class photdata:
 
     #################
     # analysis tools
-    #################      
-    def get_period(self,p_min=0.1,p_max=4,x=None,y=None,yerr=None,
+    #################
+     
+    def get_period(self,repr_mode='likelihood',return_Z=False,**kwargs):
+        if repr_mode=='chisq' or repr_mode=='chi2' or repr_mode=='chi_square':
+            return self._get_period(**kwargs)
+        if repr_mode=='likelihood' or repr_mode=='lik':
+            period,period_err,Z = self._get_period_likelihood(**kwargs)
+            if return_Z:
+                return period,period_err,Z
+            else:
+                return period,period_err
+
+    def _get_period(self,p_min=0.1,p_max=4,x=None,y=None,yerr=None,
         method='fast',model='Fourier',p0_func=None,
-        peaks_to_test=5,R_peak=500,N0=5,debug=False,force_refine=False,
+        peaks_to_test=5,R_peak=500,N0=10,debug=False,force_refine=False,
         default_err=1e-6,no_overwrite=False,multiprocessing=True,
-        return_SDE=False,ignore_warning=False,**kwargs):
+        return_SDE=False,ignore_warning=False,
+        try_likelihood=False,**kwargs):
         '''
         detects period.
         '''
@@ -523,7 +540,7 @@ class photdata:
             print(f'{time.time()-t0:.3f}s --- * expected deviation size = {period_err:.2e}')
         if (fit_peak_deviation > 2*period_err) or (period_err==np.inf):
             if not ignore_warning:
-                warningMessage = 'warning: provided uncertainty may not be accurate. Try increasing sampling size (N0, default 5).'
+                warningMessage = 'warning: provided uncertainty may not be accurate. Try increasing sampling size (N0, default 10).'
                 print(warningMessage)
         elif debug:
             print(f'{time.time()-t0:.3f}s --- * period error validated')
@@ -545,6 +562,52 @@ class photdata:
             return period,period_err,period_SDE
         return period,period_err
    
+    def _get_period_likelihood(self,period=None,period_err=None,p_min=0.1,p_max=4.0,N_peak=1000,N_noise=5000,Nsigma_range=10,return_SDE=False,**kwargs):
+        '''
+        Calculates the period, uncertainty, and significance based on the given initial guesses.
+        '''
+        if period is None and period_err is None:
+            if return_SDE:
+                period, period_err,SDE = self._get_period(p_min=p_min,p_max=p_max,return_SDE=return_SDE,**kwargs)
+            else:
+                period, period_err = self._get_period(p_min=p_min,p_max=p_max,**kwargs)
+
+        def Gaussian(x,mu,sigma,amp):
+            return amp*np.exp(-0.5*(x-mu)**2/sigma**2)
+
+        # sample likelihood near the period
+        periods,lik = self.periodogram(
+            p_min = period-period_err*Nsigma_range,
+            p_max = period+period_err*Nsigma_range,
+            N=N_peak,
+            repr_mode='likelihood',
+            raise_warnings=False,
+            **kwargs
+            )
+        popt,_ = curve_fit(Gaussian,periods,lik,p0=[period,period_err,lik.max()],bounds=(0,np.inf))
+        signal_log = np.log(lik.max())
+        period_mu,period_sigma,_ = popt
+
+        # sample likelihood for shuffled data
+        idx = np.arange(len(self.x))
+        np.random.shuffle(idx)
+        y_noise = self.y[idx]
+        yerr_noise = self.yerr[idx]
+        _,loglik_noise = self.periodogram(
+            p_min=p_min, p_max=p_max, N=N_noise,
+            x=self.x, y=y_noise, yerr=yerr_noise,
+            repr_mode = 'log-likelihood',
+            raise_warnings=False,
+            **kwargs
+            )
+        noise_mu,noise_sigma = loglik_noise.mean(),loglik_noise.std()
+        Zscore = (signal_log-noise_mu)/noise_sigma
+        
+        if return_SDE:
+            return period_mu,period_sigma,Zscore, SDE
+        return period_mu, period_sigma, Zscore
+        
+
     def get_period_multi(self,N,FAR_max=1e-3,model='Fourier',p0_func=None,**kwargs):
         '''
         multi-period detection. 

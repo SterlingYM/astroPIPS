@@ -86,10 +86,19 @@ def get_likelihood(MODEL,p0_func,x,y,yerr,period,**kwargs):
     returns Gaussian likelihood for the best-fit function at given folding period.
     '''
     y_fit = get_bestfit(MODEL,p0_func,x,y,yerr,period,return_yfit=True,return_params=False,**kwargs)
-    lik = np.prod(np.exp(-0.5*(y-y_fit)**2/(yerr**2)) / (np.sqrt(2*np.pi)*yerr))
-    # return (1/len(x)) * np.sum(np.exp(-0.5*(y-y_fit)**2/yerr**2) / (np.sqrt(2*np.pi)*yerr))
-    # lik = -0.5*np.sum((y-y_fit)**2/yerr**2+np.log(2*np.pi*yerr**2))
-    # return np.exp(lik)
+    lik = np.prod(
+        np.exp(-0.5*(y-y_fit)**2/(yerr**2)) / (np.sqrt(2*np.pi)*yerr)
+        )
+    return lik
+
+def get_loglik(MODEL,p0_func,x,y,yerr,period,**kwargs):
+    '''
+    returns Gaussian likelihood for the best-fit function at given folding period.
+    '''
+    y_fit = get_bestfit(MODEL,p0_func,x,y,yerr,period,return_yfit=True,return_params=False,**kwargs)
+    lik = -0.5 * np.sum(
+        (y-y_fit)**2/(yerr**2) + np.log(2*np.pi*yerr**2)
+        )
     return lik
 
 def get_chi2ref(x,y,yerr):
@@ -129,7 +138,8 @@ def periodogram_custom(x,y,yerr,p_min=None,p_max=None,N=None,p0_func=None,multip
     # main
     REPRs = {
         'chisq':get_chi2,
-        'likelihood':get_likelihood
+        'likelihood':get_likelihood,
+        'log-likelihood':get_loglik
     }
     global mp_worker
     def mp_worker(period):
@@ -143,7 +153,7 @@ def periodogram_custom(x,y,yerr,p_min=None,p_max=None,N=None,p0_func=None,multip
     else:
         chi2 = np.array(list(map(mp_worker,periods)))
     
-    if repr_mode=='likelihood':
+    if repr_mode=='likelihood' or repr_mode=='log-likelihood':
         return periods,chi2
 
     chi2ref = get_chi2ref(x,y,yerr)
