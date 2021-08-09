@@ -6,9 +6,11 @@
 [![codecov](https://codecov.io/gh/SterlingYM/PIPS/branch/master/graph/badge.svg?token=R1W2S30XV2)](https://codecov.io/gh/SterlingYM/PIPS)
 [![Documentation Status](https://readthedocs.org/projects/pips/badge/?version=latest)](https://pips.readthedocs.io/en/latest/?badge=latest)
 
-PIPS is a Python pipeline designed to analyze the lightcurves of astronomical objects whose brightness changes periodically. Our pipeline can be imported quickly and is designed to be user friendly. PIPS was originally developed to determine the periods of RR Lyrae variable stars and offers many features designed for variable star analysis. We have expanded PIPS into a suite that can obtain period values for almost any type of lightcurve with both speed and accuracy. PIPS can determine periods through several different methods, analyze the morphology of lightcurves via fourier analysis, and determine stellar properties based on preexisting stellar models. Currently our team is also exploring the possibility of using this pipeline to detect periods of exoplanets as well.
+PIPS is a Python pipeline designed to analyze the lightcurves of astronomical objects whose brightness changes periodically. Our pipeline can be imported quickly and is designed to be user friendly. PIPS was originally developed to determine the periods of RR Lyrae variable stars and offers many features designed for variable star analysis. We have expanded PIPS into a suite that can obtain period values for almost any type of lightcurve with both speed and accuracy. PIPS can determine periods through several different methods, analyze the morphology of lightcurves via fourier analysis, estimate the statistical significance of the detected signal, and determine stellar properties based on preexisting stellar models. Currently our team is also exploring the possibility of using this pipeline to detect periods of exoplanets as well.
 
-(last edit: April 1st, 2021) 
+A detailed description of PIPS and its algorithms is provided in [our paper](https://arxiv.org/abs/2107.14223).
+
+(last edit: August 8th, 2021) 
 
 ![](sample_lightcurve.png)
 
@@ -22,7 +24,7 @@ PIPS is a Python pipeline designed to analyze the lightcurves of astronomical ob
 ## Publications
 Please cite the following if PIPS is utilized for a scientific project:
 * Hoffman et al. 2021 [![DOI:10.1093/mnras/stab010](https://zenodo.org/badge/DOI/10.1093/mnras/stab010.svg)](https://doi.org/10.1093/mnras/stab010) (arxiv: [2008.09778](https://arxiv.org/abs/2008.09778))
-* Murakami et al. (Paper in prep, Arxiv link pending)
+* Murakami et al. (Submitted to MNRAS. arxiv: [2107.14223](https://arxiv.org/abs/2107.14223))
 
 
 --------------------------
