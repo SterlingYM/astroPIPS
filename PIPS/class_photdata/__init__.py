@@ -392,8 +392,8 @@ class photdata:
     def get_period(self,repr_mode='likelihood',return_Z=False,**kwargs):
         if repr_mode=='chisq' or repr_mode=='chi2' or repr_mode=='chi_square':
             return self._get_period(**kwargs)
-        if repr_mode=='likelihood' or repr_mode=='lik':
-            period,period_err,Z = self._get_period_likelihood(**kwargs)
+        if repr_mode in ['likelihood','lik','log-likelihood','loglik']:
+            period,period_err,Z = self._get_period_likelihood(repr_mode=repr_mode,**kwargs)
             if return_Z:
                 return period,period_err,Z
             else:
@@ -562,7 +562,7 @@ class photdata:
             return period,period_err,period_SDE
         return period,period_err
    
-    def _get_period_likelihood(self,period=None,period_err=None,p_min=0.1,p_max=4.0,N_peak=1000,N_noise=5000,Nsigma_range=10,return_SDE=False,**kwargs):
+    def _get_period_likelihood(self,period=None,period_err=None,p_min=0.1,p_max=4.0,N_peak=1000,N_noise=5000,Nsigma_range=10,return_SDE=False,repr_mode='likelihood',**kwargs):
         '''
         Calculates the period, uncertainty, and significance based on the given initial guesses.
         '''
@@ -572,20 +572,21 @@ class photdata:
             else:
                 period, period_err = self._get_period(p_min=p_min,p_max=p_max,**kwargs)
 
-        def Gaussian(x,mu,sigma,amp):
-            return amp*np.exp(-0.5*(x-mu)**2/sigma**2)
+        def log_Gaussian(x,mu,sigma,offset):
+            # return amp*np.exp(-0.5*(x-mu)**2/sigma**2)
+            return -0.5*(x-mu)**2/sigma**2 + offset
 
         # sample likelihood near the period
         periods,lik = self.periodogram(
             p_min = period-period_err*Nsigma_range,
             p_max = period+period_err*Nsigma_range,
             N=N_peak,
-            repr_mode='likelihood',
+            repr_mode='loglik',
             raise_warnings=False,
             **kwargs
             )
-        popt,_ = curve_fit(Gaussian,periods,lik,p0=[period,period_err,lik.max()],bounds=(0,np.inf))
-        signal_log = np.log(lik.max())
+        popt,_ = curve_fit(log_Gaussian,periods,lik,p0=[period,period_err,lik.max()],bounds=[[0,0,-np.inf],[np.inf,np.inf,np.inf]])
+        signal_log = lik.max()
         period_mu,period_sigma,_ = popt
 
         # sample likelihood for shuffled data

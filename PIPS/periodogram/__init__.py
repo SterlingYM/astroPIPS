@@ -40,7 +40,7 @@ class Periodogram:
             multiprocessing=True,N0=5,model='Fourier',
             raise_warnings=True,**kwargs):
         '''
-        doc: todo
+        Generate periodogram. 
         '''
         # call parent class data
         photdata = self.photdata
@@ -93,7 +93,7 @@ class Periodogram:
         periods,power = METHODS[method](**kwargs)
         
         if 'repr_mode' in kwargs:
-            if kwargs['repr_mode'] == 'likelihood' or kwargs['repr_mode'] == 'likelihood':
+            if kwargs['repr_mode'] in ['likelihood','lik','log-likelihood','loglik']:
                 self.mode='likelihood'
         periods = np.asarray(periods)
         power   = np.asarray(power)
@@ -140,7 +140,6 @@ class Periodogram:
 
         # plot
         ax.plot(periods,power,c=c,lw=1)
-        ax.fill_between(periods,0,power,color=c)
         if show_peak:
             ax.axvline(periods[power==power.max()],c='orange',lw=1.5,linestyle=':',zorder=10)
         ax.set_xlabel('period',fontsize=15)
@@ -152,13 +151,17 @@ class Periodogram:
 
         # switch between different types
         if self.mode == 'regular':
+            ax.fill_between(periods,0,power,color=c)
             ax.set_ylim(0,1)
         elif self.mode == 'SR':
+            ax.fill_between(periods,0,power,color=c)
             ax.set_ylim(0,1)
         elif self.mode == 'SDE':
+            ax.fill_between(periods,0,power,color=c)
             ax.set_ylim(0,power.max())
         elif self.mode == 'likelihood':
-            ax.set_ylim(0,power.max()*1.05)
+            ax.fill_between(periods,power.min(),power,color=c)
+            ax.set_ylim(power.min(),power.max()*1.05)
 
     def SR(self):
         SR = self.power / self.power.max()
