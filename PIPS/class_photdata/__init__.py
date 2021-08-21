@@ -479,15 +479,16 @@ class photdata:
 
         # detect aliasing
         if model=='Fourier':
-            if debug: 
-                print(f'{time.time()-t0:.3f}s --- detecting aliasing...')
-            factor = np.argmax(abs(model_bestfit[1:Nterms]))+1
-            if factor != 1:
-                period /= factor
-                model_bestfit = get_bestfit(MODEL,P0_FUNC,x,y,yerr,period,return_yfit=False,return_params=True,**KWARGS)
-            if debug:
-                print(f'{time.time()-t0:.3f}s --- alias factor: ',factor)
-                print(f'{time.time()-t0:.3f}s --- period candidate: ',period)
+            if Nterms>1:
+                if debug: 
+                    print(f'{time.time()-t0:.3f}s --- detecting aliasing...')
+                factor = np.argmax(abs(model_bestfit[1:Nterms]))+1
+                if factor != 1:
+                    period /= factor
+                    model_bestfit = get_bestfit(MODEL,P0_FUNC,x,y,yerr,period,return_yfit=False,return_params=True,**KWARGS)
+                if debug:
+                    print(f'{time.time()-t0:.3f}s --- alias factor: ',factor)
+                    print(f'{time.time()-t0:.3f}s --- period candidate: ',period)
 
         # get uncertainty
         if debug:

@@ -28,7 +28,7 @@ from .class_StellarModels import *
 
 
 __uri__ = "https://PIPS.readthedocs.io" 
-__author__ = "Y. Murakami, A. Savel, J. Sunseri, A. Hoffman"
+__author__ = "Y. Murakami, A. Savel, J. Sunseri, A. Hoffman, Ivan Altunin, Nachiket Girish"
 __maintainer__ = "Y. Murakami"
 __email__ = "sterling.astro@berkeley.edu"
 __license__ = "MIT"
