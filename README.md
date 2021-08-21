@@ -10,6 +10,8 @@ PIPS is a Python pipeline designed to analyze the lightcurves of astronomical ob
 
 A detailed description of PIPS and its algorithms is provided in [our paper](https://arxiv.org/abs/2107.14223).
 
+__NOTE: We are currently updating the documentation to match the content with the paper__
+
 (last edit: August 8th, 2021) 
 
 ![](sample_lightcurve.png)
