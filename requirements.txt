@@ -4,3 +4,4 @@ matplotlib
 astropy
 numba
 nbsphinx
+emcee
