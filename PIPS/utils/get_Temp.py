@@ -53,7 +53,7 @@ def calc_loglik(T_test,filter_data,bands,mag_obs,mag_err):
 def log_Gaussian(x,mu,sigma,offset):
     return -0.5*(x-mu)**2/sigma**2 + offset
 
-def get_Temp(filter_data,bands,m_obs,m_err,T_min=3000,T_max=15000,dT=10,interm_range=1000,R_peak=500,Nsigma_range=2,multiprocessing=True):
+def get_Temp(filter_data,bands,m_obs,m_err,T_min=3000,T_max=15000,dT=10,cut_range=1000,R_peak=500,Nsigma_range=2,multiprocessing=True):
     '''
     Calculate temperature.
     '''
@@ -74,7 +74,7 @@ def get_Temp(filter_data,bands,m_obs,m_err,T_min=3000,T_max=15000,dT=10,interm_r
 
     ## estimate uncertainty
     mpv = temps[loglik==loglik.max()][0]
-    cut = (temps>mpv-interm_range) & (temps<mpv+interm_range)
+    cut = (temps>mpv-cut_range) & (temps<mpv+cut_range)
     popt,_ = curve_fit(lambda x,sigma,offset:log_Gaussian(x,mpv,sigma,offset),temps[cut],loglik[cut])
     T_sigma = popt[0]
     if T_sigma<dT:

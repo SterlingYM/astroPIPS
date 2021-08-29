@@ -1,9 +1,8 @@
 import numpy as np
 def data_readin_LPP(path,filter='V'):
     '''
-    to be updated
+    takes '.dat' file from LOSS Phot Pypeline (LPP) and returns data in PIPS.photdata()-readable format.
     '''
-    # takes '.dat' file from LOSS Phot Pypeline (LPP) and returns data in pips.photdata()-readable format.
     # load info
     t,y,y_lower,y_upper = np.loadtxt(path,delimiter='\t',usecols=(0,2,3,4),skiprows=1,unpack=True)
     band                = np.loadtxt(path,delimiter='\t',usecols=6,skiprows=1,dtype=str,unpack=True)
