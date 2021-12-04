@@ -139,7 +139,9 @@ def periodogram_custom(x,y,yerr,p_min=None,p_max=None,N=None,p0_func=None,multip
     REPRs = {
         'chisq':get_chi2,
         'likelihood':get_likelihood,
-        'log-likelihood':get_loglik
+        'lik':get_likelihood,
+        'log-likelihood':get_loglik,
+        'loglik':get_loglik
     }
     global mp_worker
     def mp_worker(period):
@@ -153,7 +155,7 @@ def periodogram_custom(x,y,yerr,p_min=None,p_max=None,N=None,p0_func=None,multip
     else:
         chi2 = np.array(list(map(mp_worker,periods)))
     
-    if repr_mode=='likelihood' or repr_mode=='log-likelihood':
+    if repr_mode in ['likelihood','lik','log-likelihood','loglik']:
         return periods,chi2
 
     chi2ref = get_chi2ref(x,y,yerr)

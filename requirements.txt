@@ -4,3 +4,5 @@ matplotlib
 astropy
 numba
 nbsphinx
+emcee
+importlib

@@ -146,8 +146,7 @@ class Periodogram:
         ax.set_xlim(periods.min(),periods.max())
 
         peak_period = periods[power==power.max()]
-        if return_axis:
-            return ax
+
 
         # switch between different types
         if self.mode == 'regular':
@@ -163,6 +162,9 @@ class Periodogram:
             ax.fill_between(periods,power.min(),power,color=c)
             ax.set_ylim(power.min(),power.max()*1.05)
 
+        if return_axis:
+            return ax
+            
     def SR(self):
         SR = self.power / self.power.max()
         return Periodogram(self.photdata,self.periods,SR,self.kwargs,mode='SR')

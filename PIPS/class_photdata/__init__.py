@@ -324,7 +324,7 @@ class photdata:
         else:
             return (SR-SR.mean())/SR.std()
 
-    def plot_lc(self,period=None,invert_yaxis=True,figsize=(8,4),ax=None,return_axis=False,title=None,plot_bestfit=False,model_color='yellowgreen',model_kwargs={},ylabel='mag',**kwargs):
+    def plot_lc(self,period=None,invert_yaxis=True,figsize=(8,4),ax=None,return_axis=False,title=None,plot_bestfit=False,plot_epoch=False,model_color='yellowgreen',model_kwargs={},ylabel='mag',**kwargs):
         '''
         plots phase-folded light curve.
         '''
@@ -334,6 +334,8 @@ class photdata:
             else:
                 period = self.period
         phase = (self.x % period)/period
+
+
 
         if title is None:
             title = self.label
@@ -349,6 +351,15 @@ class photdata:
             kwargs['ms'] = 2
         ax.errorbar(phase,self.y,self.yerr,**kwargs)
         ax.errorbar(phase+1,self.y,self.yerr,**kwargs)
+        if 'xlim' not in kwargs.keys():
+            kwargs['xlim'] = (0,2)
+        ax.set_xlim(kwargs['xlim'])
+
+        # epoch
+        if plot_epoch:
+            epoch_offset = self.get_epoch_offset()
+            ax.axvline(epoch_offset/self.period,color='red')
+            ax.axvline(epoch_offset/self.period+1,color='red');
         ax.set_title(title,fontsize=16)
         ax.set_xlabel('Phase',fontsize=16)
         ax.set_ylabel(ylabel,fontsize=16)
@@ -357,7 +368,7 @@ class photdata:
         if invert_yaxis and not ax.yaxis_inverted():
             ax.invert_yaxis()
         if plot_bestfit:
-            x_th,y_th = self.get_bestfit_curve(**model_kwargs)
+            x_th,y_th = self.get_bestfit_curve(period=period,**model_kwargs)
             plt.plot(x_th/period,y_th,lw=3,c=model_color)
             plt.plot(x_th/period+1,y_th,lw=3,c=model_color)
         if return_axis:
@@ -572,23 +583,45 @@ class photdata:
                 period, period_err,SDE = self._get_period(p_min=p_min,p_max=p_max,return_SDE=return_SDE,**kwargs)
             else:
                 period, period_err = self._get_period(p_min=p_min,p_max=p_max,**kwargs)
-
+                
+        def Gaussian(x,mu,sigma,amp):
+            return amp*np.exp(-0.5*(x-mu)**2/sigma**2)
         def log_Gaussian(x,mu,sigma,offset):
-            # return amp*np.exp(-0.5*(x-mu)**2/sigma**2)
             return -0.5*(x-mu)**2/sigma**2 + offset
 
         # sample likelihood near the period
-        periods,lik = self.periodogram(
-            p_min = period-period_err*Nsigma_range,
-            p_max = period+period_err*Nsigma_range,
-            N=N_peak,
-            repr_mode='loglik',
-            raise_warnings=False,
-            **kwargs
-            )
-        popt,_ = curve_fit(log_Gaussian,periods,lik,p0=[period,period_err,lik.max()],bounds=[[0,0,-np.inf],[np.inf,np.inf,np.inf]])
-        signal_log = lik.max()
-        period_mu,period_sigma,_ = popt
+        try:
+            # get normalized likelihood periodogram
+            periods,lik = self.periodogram(
+                p_min = period-period_err*Nsigma_range,
+                p_max = period+period_err*Nsigma_range,
+                N=N_peak,
+                repr_mode='lik',
+                raise_warnings=False,
+                **kwargs
+                )
+            popt,_ = curve_fit(Gaussian,periods,lik,p0=[period,period_err,lik.max()],bounds=[[0,0,-np.inf],[np.inf,np.inf,np.inf]])
+            period_mu,period_sigma,_ = popt  
+
+            # log-likelihood without normalization (for Z-test)
+            _,_pow = self.periodogram(custom_periods=[period_mu],repr_mode='loglik',normalize=False)
+            signal_log = _pow[0]
+
+        # try fitting to the log-likelihood if the linear scale Gaussian fails
+        except Exception:
+            print('warning: Gaussian fit failed in likelihood. Trying log-likelihood fit instead (may be less accurate)')
+            periods,lik = self.periodogram(
+                p_min = period-period_err*Nsigma_range,
+                p_max = period+period_err*Nsigma_range,
+                N=N_peak,
+                repr_mode='loglik',
+                raise_warnings=False,
+                normalize=False,
+                **kwargs
+                )
+            popt,_ = curve_fit(log_Gaussian,periods,lik,p0=[period,period_err,lik.max()],bounds=[[0,0,-np.inf],[np.inf,np.inf,np.inf]])
+            signal_log = lik.max()
+            period_mu,period_sigma,_ = popt
 
         # sample likelihood for shuffled data
         idx = np.arange(len(self.x))
@@ -605,6 +638,8 @@ class photdata:
         noise_mu,noise_sigma = loglik_noise.mean(),loglik_noise.std()
         Zscore = (signal_log-noise_mu)/noise_sigma
         
+        self.period = period_mu
+        self.period_err = period_sigma
         if return_SDE:
             return period_mu,period_sigma,Zscore, SDE
         return period_mu, period_sigma, Zscore

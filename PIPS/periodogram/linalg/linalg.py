@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 from multiprocessing import Pool
 
-def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom_periods=None,model='Fourier',repr_mode='chisq',**kwargs):
+def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom_periods=None,model='Fourier',repr_mode='chisq',normalize=True,**kwargs):
     '''
     linear algebra-based periodogram.
     '''
@@ -53,7 +53,9 @@ def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom
         if repr_mode == 'chisq':
             return np.dot(Y,Yfit)+np.dot(Y-Yfit,Yfit)
         elif repr_mode in ['likelihood','lik']:
-            return np.prod(np.exp(-0.5*(Y-Yfit)**2)/(np.sqrt(2*np.pi)*yerr))
+            loglik = -0.5*np.sum((Y-Yfit)**2 + np.log(2*np.pi*yerr**2))
+            return loglik # note: this needs to be brought back to exp later
+            # return np.prod(np.exp(-0.5*(Y-Yfit)**2)/(np.sqrt(2*np.pi)*yerr))
         elif repr_mode in ['log-likelihood','loglik']:
             return -0.5*np.sum((Y-Yfit)**2 + np.log(2*np.pi*yerr**2))
 
@@ -76,8 +78,17 @@ def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom
         chi2 = np.asarray(list(map(calc_power,periods)))
 
     # normalize
-    if repr_mode in ['likelihood','lik','log-likelihood','loglik']:
-        return periods,chi2
-    chi2ref = np.dot(Y,Y)
-    power = chi2/chi2ref
-    return periods,power
+    if repr_mode in ['log-likelihood','loglik']:
+        if normalize:
+            return periods,chi2-chi2.max()
+        else:
+            return periods,chi2
+    elif repr_mode in ['likelihood','lik']:
+        if normalize:
+            return periods,np.exp(chi2-chi2.max())
+        else:
+            return periods,np.exp(chi2)
+    else:
+        chi2ref = np.dot(Y,Y)
+        power = chi2/chi2ref
+        return periods,power
