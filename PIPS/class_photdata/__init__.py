@@ -226,7 +226,7 @@ class photdata:
         '''
         return self.__str__()
 
-    def prepare_data(self,x,y,yerr):
+    def prepare_data(self,x=None,y=None,yerr=None):
         if (x is None) and (y is None) and (yerr is None):
             x = self.x
             y = self.y
@@ -324,7 +324,7 @@ class photdata:
         else:
             return (SR-SR.mean())/SR.std()
 
-    def plot_lc(self,period=None,invert_yaxis=True,figsize=(8,4),ax=None,return_axis=False,title=None,plot_bestfit=False,plot_epoch=False,model_color='yellowgreen',model_kwargs={},ylabel='mag',**kwargs):
+    def plot_lc(self,period=None,invert_yaxis=True,figsize=(8,4),ax=None,return_axis=False,title=None,plot_bestfit=False,plot_epoch=False,offset_epoch=False,model_color='yellowgreen',model_kwargs={},ylabel='mag',epoch_type='min',**kwargs):
         '''
         plots phase-folded light curve.
         '''
@@ -333,9 +333,12 @@ class photdata:
                 raise ValueError('folding period needs to be specified')
             else:
                 period = self.period
-        phase = (self.x % period)/period
 
-
+        x,y,yerr = self.prepare_data()
+        if offset_epoch:
+            epoch_offset = self.get_epoch_offset(model_kwargs=model_kwargs,type=epoch_type)
+            x -= epoch_offset
+        phase = (x % period)/period
 
         if title is None:
             title = self.label
@@ -356,8 +359,8 @@ class photdata:
         ax.set_xlim(kwargs['xlim'])
 
         # epoch
-        if plot_epoch:
-            epoch_offset = self.get_epoch_offset()
+        if plot_epoch and not offset_epoch:
+            epoch_offset = self.get_epoch_offset(model_kwargs=model_kwargs,type=epoch_type)
             ax.axvline(epoch_offset/self.period,color='red')
             ax.axvline(epoch_offset/self.period+1,color='red');
         ax.set_title(title,fontsize=16)
@@ -368,13 +371,13 @@ class photdata:
         if invert_yaxis and not ax.yaxis_inverted():
             ax.invert_yaxis()
         if plot_bestfit:
-            x_th,y_th = self.get_bestfit_curve(period=period,**model_kwargs)
+            x_th,y_th = self.get_bestfit_curve(x=x,y=y,yerr=yerr,period=period,**model_kwargs)
             plt.plot(x_th/period,y_th,lw=3,c=model_color)
             plt.plot(x_th/period+1,y_th,lw=3,c=model_color)
         if return_axis:
             return ax
  
-    def get_epoch_offset(self,period=None,x=None,y=None,yerr=None,model='Fourier',N=1000,Nterms=5,**kwargs):
+    def get_epoch_offset(self,period=None,x=None,y=None,yerr=None,model_kwargs={},N=1000,type='min',**kwargs):
         '''
         TODO: define the 'maxima': is it the minimum in magnitude or maximum in any value? current implementation -> 'magnitude' interpretation only
         inputs:
@@ -386,13 +389,16 @@ class photdata:
         # use automatically determined period if period is not explicitly given
         if period == None:
             if self.period == None:
-                period, _ = self.get_period(**kwargs)
+                period, _ = self.get_period(**model_kwargs,**kwargs)
             period = self.period
         
         # get the phase offset (phase of maxima for raw data)
         x_th = np.linspace(0,period,N)
-        _, y_th = self.get_bestfit_curve(x=x,y=y,yerr=yerr,period=period,model=model,Nterms=Nterms,x_th=x_th)
-        epoch_offset = x_th[np.argmin(y_th)]
+        _, y_th = self.get_bestfit_curve(x=x,y=y,yerr=yerr,period=period,**model_kwargs)
+        if type=='min':
+            epoch_offset = x_th[np.argmin(y_th)]
+        if type=='max':
+            epoch_offset = x_th[np.argmax(y_th)]
         self.epoch_offset = epoch_offset
         return epoch_offset
 
