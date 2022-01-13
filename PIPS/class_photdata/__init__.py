@@ -73,7 +73,7 @@ class photdata:
         self.epoch = None
         self.epoch_offset = None
         self.meanmag = None # based on best-fit function: requires period
-        self.multiprocessing = True
+        self.multiprocessing = False
         self.periodogram = Periodogram(photdata=self)
 
     def __repr__(self):
@@ -299,11 +299,11 @@ class photdata:
         chi2 = _get_chi2(MODEL,P0_FUNC,x,y,yerr,period,**KWARGS)
         return chi2
 
-    def get_bestfit_amplitude(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5,**kwargs):
+    def get_bestfit_amplitude(self,x=None,y=None,yerr=None,period=None,**kwargs):
         '''
         calculates the amplitude of best-fit curve.
         '''
-        _,y_th = self.get_bestfit_curve(x,y,yerr,period,model,Nterms,**kwargs)
+        _,y_th = self.get_bestfit_curve(x=x,y=y,yerr=yerr,period=period,**kwargs)
         return np.max(y_th)-np.min(y_th)
 
     def get_meanmag(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5,**kwargs):
@@ -580,7 +580,7 @@ class photdata:
             return period,period_err,period_SDE
         return period,period_err
    
-    def _get_period_likelihood(self,period=None,period_err=None,p_min=0.1,p_max=4.0,N_peak=1000,N_noise=5000,Nsigma_range=10,return_SDE=False,repr_mode='likelihood',**kwargs):
+    def _get_period_likelihood(self,period=None,period_err=None,p_min=0.1,p_max=4.0,N_peak=1000,N_noise=5000,Nsigma_range=5,return_SDE=False,repr_mode='likelihood',**kwargs):
         '''
         Calculates the period, uncertainty, and significance based on the given initial guesses.
         '''
@@ -596,49 +596,57 @@ class photdata:
             return -0.5*(x-mu)**2/sigma**2 + offset
 
         # sample likelihood near the period
+        periods,lik = self.periodogram(
+            p_min = period-period_err*Nsigma_range,
+            p_max = period+period_err*Nsigma_range,
+            N=N_peak,
+            repr_mode='loglik',
+            raise_warnings=False,
+            normalize=False,
+            **kwargs
+            )
+        popt,_ = curve_fit(log_Gaussian,periods,lik,p0=[period,period_err,lik.max()],bounds=[[0,0,-np.inf],[np.inf,np.inf,np.inf]])
+        signal_log = lik.max()
+        period_mu,period_sigma,_ = popt
+
         try:
             # get normalized likelihood periodogram
             periods,lik = self.periodogram(
-                p_min = period-period_err*Nsigma_range,
-                p_max = period+period_err*Nsigma_range,
+                p_min = period_mu-period_sigma*Nsigma_range,
+                p_max = period_mu+period_sigma*Nsigma_range,
                 N=N_peak,
                 repr_mode='lik',
                 raise_warnings=False,
                 **kwargs
                 )
-            popt,_ = curve_fit(Gaussian,periods,lik,p0=[period,period_err,lik.max()],bounds=[[0,0,-np.inf],[np.inf,np.inf,np.inf]])
-            period_mu,period_sigma,_ = popt  
+            popt,_ = curve_fit(Gaussian,periods,lik,p0=[period_mu,period_sigma,lik.max()],bounds=[[0,0,0],[np.inf,np.inf,np.inf]],maxfev=10000)
+            period_mu,period_sigma,_ = popt   
 
-            # log-likelihood without normalization (for Z-test)
-            _,_pow = self.periodogram(custom_periods=[period_mu],repr_mode='loglik',normalize=False)
-            signal_log = _pow[0]
+            # # log-likelihood without normalization (for Z-test)
+            # _,_pow = self.periodogram(custom_periods=[period_mu],repr_mode='loglik',normalize=False)
+            # signal_log = _pow[0]
 
         # try fitting to the log-likelihood if the linear scale Gaussian fails
         except Exception:
-            print('warning: Gaussian fit failed in likelihood. Trying log-likelihood fit instead (may be less accurate)')
-            periods,lik = self.periodogram(
-                p_min = period-period_err*Nsigma_range,
-                p_max = period+period_err*Nsigma_range,
-                N=N_peak,
-                repr_mode='loglik',
-                raise_warnings=False,
-                normalize=False,
-                **kwargs
-                )
-            popt,_ = curve_fit(log_Gaussian,periods,lik,p0=[period,period_err,lik.max()],bounds=[[0,0,-np.inf],[np.inf,np.inf,np.inf]])
-            signal_log = lik.max()
-            period_mu,period_sigma,_ = popt
+            print('warning: Gaussian fit failed in likelihood. Using log-likelihood fit instead (may be less accurate)')
+
 
         # sample likelihood for shuffled data
-        idx = np.arange(len(self.x))
+        if ('x' in kwargs) or ('y' in kwargs) or ('yerr' in kwargs):
+            assert ('x' in kwargs) and ('y' in kwargs) and ('yerr' in kwargs), "All [x,y,yerr] need to be provided when custom data is given"   
+            x,y,yerr = self.prepare_data(kwargs['x'],kwargs['y'],kwargs['yerr'])
+        else:
+            x,y,yerr = self.prepare_data()
+        idx = np.arange(len(x))
         np.random.shuffle(idx)
-        y_noise = self.y[idx]
-        yerr_noise = self.yerr[idx]
+        kwargs['x'] = x
+        kwargs['y'] = y[idx]
+        kwargs['yerr'] = yerr[idx]
         _,loglik_noise = self.periodogram(
             p_min=p_min, p_max=p_max, N=N_noise,
-            x=self.x, y=y_noise, yerr=yerr_noise,
             repr_mode = 'log-likelihood',
             raise_warnings=False,
+            normalize=False,
             **kwargs
             )
         noise_mu,noise_sigma = loglik_noise.mean(),loglik_noise.std()
@@ -650,6 +658,19 @@ class photdata:
             return period_mu,period_sigma,Zscore, SDE
         return period_mu, period_sigma, Zscore
         
+    def prewhiten(self,x=None,y=None,yerr=None,period=None,**kwargs):
+        x,y,yerr = self.prepare_data(x,y,yerr)
+        if period is None:
+            period = self.get_period(**kwargs)
+        _,y_th = self.get_bestfit_curve(
+            x = x,
+            y = y,
+            yerr = yerr,
+            period = period,
+            use_original_x = True,
+            **kwargs
+        )
+        return x,y-y_th,yerr
 
     def get_period_multi(self,N,FAR_max=1e-3,model='Fourier',p0_func=None,**kwargs):
         '''
@@ -657,7 +678,7 @@ class photdata:
         Re-detects P1 and then proceeds to P2, P3, ... PN.
         Pn=None if FAR for nth period exceeds given thershold.
         '''
-        # TODO: implement FAR
+        # TODO: implement Z-cut
 
         # model & kwargs preparation     
         if model=='Fourier':
@@ -669,40 +690,48 @@ class photdata:
         MODEL, P0_FUNC, KWARGS = self.check_model(model,p0_func,**kwargs)
         
         # data prep
-        x_prewhitened = self.x.copy()
-        y_prewhitened = self.y.copy()
-        yerr_prewhitened = self.yerr.copy()
+        _x = self.x.copy()
+        _y = self.y.copy()
+        _yerr = self.yerr.copy()
 
         # repeats period detection -> prewhitening
         periods = []
         period_errors = []
+        z_vals = []
         amplitudes = []
 
         for _ in range(N):
-            period,period_err = self.get_period(
-                x=x_prewhitened,
-                y=y_prewhitened,
-                yerr=yerr_prewhitened,
-                model=model,
-                p0_func=p0_func,
+            returns = self.get_period(
+                x = _x,
+                y = _y,
+                yerr = _yerr,
+                model = model,
+                p0_func = p0_func,
                 **kwargs)
+            period = returns[0]
             periods.append(period)
-            period_errors.append(period_err)
+            period_errors.append(returns[1])
+            if len(returns)>2:
+                z_vals.append(returns[2:])
             amp = self.get_bestfit_amplitude(
-                x=x_prewhitened,
-                y=y_prewhitened,
-                yerr=yerr_prewhitened,
-                period=period,
-                model=model,
+                x = _x,
+                y = _y,
+                yerr = _y,
+                period = period,
+                model = model,
                 **kwargs)
             amplitudes.append(amp)
-            y_prewhitened -= get_bestfit(
-                MODEL,P0_FUNC,
-                x_prewhitened,
-                y_prewhitened,
-                yerr_prewhitened,
-                period,
-                return_yfit=True,return_params=False,**KWARGS)
+            _x,_y,_yerr = self.prewhiten(
+                x = _x,
+                y = _y,
+                yerr = _yerr,
+                period = period,
+                model = model,
+                **kwargs
+            )
+
+        if len(z_vals)>0:
+            return periods,period_errors,z_vals,amplitudes
         return periods,period_errors,amplitudes
 
     def amplitude_spectrum(self,p_min,p_max,N,model='Fourier',p0_func=None,grid=10000,plot=False,**kwargs):

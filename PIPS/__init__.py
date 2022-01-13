@@ -13,6 +13,11 @@ Classes:
     photdata  --- data container for individual objects and analysis tools
     visualize --- visualization tools for photdata and analysis results
     StellarModels --- various stellar property relationship models (e.g. period-luminosity)
+    
+    
+Change log:
+12.21.21 Disabled multiprocessing by default
+
 '''
 import matplotlib.pyplot as pyplot
 import numpy as np
@@ -32,8 +37,8 @@ __author__ = "Y. Murakami, A. Savel, J. Sunseri, A. Hoffman, Ivan Altunin, Nachi
 __maintainer__ = "Y. Murakami"
 __email__ = "sterling.astro@berkeley.edu"
 __license__ = "MIT"
-__version__ = "0.3.0-beta.1"
-__release__ = "0.3.0-beta.1"
+__version__ = "0.3.0-beta.2"
+__release__ = "0.3.0-beta.2"
 __description__ = "Processes photometric data for variable stars"
 
 def about():
