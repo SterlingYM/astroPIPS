@@ -26,4 +26,4 @@ jobs:
         
     - name: Test
       run: |
-        python3 -m unittest discover PIPS
+        python3 -m unittest discover tests
