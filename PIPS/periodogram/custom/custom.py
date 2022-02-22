@@ -5,8 +5,8 @@ from multiprocessing import Pool
 import warnings
 warnings.simplefilter("ignore", OptimizeWarning)
 
-from .models.Fourier import fourier, fourier_p0
-from .models.Gaussian import gaussian, gaussian_p0
+from PIPS.periodogram.custom.models.Fourier import fourier, fourier_p0
+from PIPS.periodogram.custom.models.Gaussian import gaussian, gaussian_p0
 
 ######### custom models: add your functions here ##########
 MODELS = {
