@@ -497,6 +497,19 @@ class photdata:
     #################
      
     def get_period(self,repr_mode='likelihood',return_Z=False,**kwargs):
+        """ calculates the best-fit period value for the given data.
+        
+        For detailed implementation of each method, see the documentation for _get_period() and _get_period_likelihood() methods.
+
+        Args:
+            repr_mode (str)['likelihood','lik','log-likelihood','loglik','chi2','chi-square']: the representation mode of the periodogram. Select from likelihood, log-likelihood, or chi-square.
+            return_Z (bool): option to return the statistical significance of the detected period signal (Z-value).
+
+        Returns:
+            period: the most probable period value for the data with given light curve model.
+            period_err: the uncertainty in the period value.
+            Z: the statistical significance of the period value. Since this value is calculated with bootstrapping, the resulting Z-value may be different each time (see N_noise option in _get_period_likelihood method).
+        """
         if repr_mode=='chisq' or repr_mode=='chi2' or repr_mode=='chi_square':
             return self._get_period(**kwargs)
         if repr_mode in ['likelihood','lik','log-likelihood','loglik']:
@@ -510,10 +523,33 @@ class photdata:
         method='fast',model='Fourier',p0_func=None,
         peaks_to_test=5,R_peak=500,N0=10,debug=False,force_refine=False,
         default_err=1e-6,no_overwrite=False,multiprocessing=True,
-        return_SDE=False,ignore_warning=False,
-        try_likelihood=False,**kwargs):
-        '''
-        detects period.
+        return_SDE=False,ignore_warning=False,**kwargs):
+        ''' detects period using the traditional chi-square method.
+
+        Args:
+            p_min: the minimum period value in the search window.
+            p_max: the maxumum period value in the search window.
+            x: the time values.
+            y: the mag/flux values.
+            yerr: the uncertainties in mag/flux values.
+            method (str)['fast','custom']: the options to switch between linear algebra and linear regression. The 'fast' option only works for the Fourier model but the same model can be run with 'custom' mode too.
+            model (str/obj): the name of the pre-implemented model or the function that generates the analytic light curve. see tutorial for the specific method to prepare user-defined functions.
+            p0_func (obj): the function that prepares the initial guess for the model. See tutorial for the formats.
+            peaks_to_test (int): the number of independent peaks in the initially-generated periodogram that are closely looked into.
+            R_peak (int): the resolution near the peak. Making this value larger results in a more reliable results with more computing time. Default 500.
+            N0 (int): the ratio between sampling width and the analytic "width" of the peak. Increasing this value directly results in a more reliable performance with increased computing time. See our paper for detail.
+            debug (bool): the option to print the progress with internal values.
+            force_refine (bool): the option to force "refinement" process regardless of the condition. When False, the periodogram near the peak is only re-sampled at finer scale under certain conditions (e.g., large uncertainty).
+            default_err (float): the default value of the uncertainty to check whether further refinement process is needed. Set this value to the expected size of the uncertainty (to the order of magnitude).
+            no_overwrite (bool): the option to prevent this function from overwriting the attributes (self.period) after successfully finding the period value
+            multiprocessing (bool): the option to enable/disable the multiprocessing feature. False by default.
+            return_SDE (bool): the option to return the SDE value.
+            ignore_warning (bool): ignores warnings when True.
+
+        Returns:
+            period: period value detected at the peak of periodogram.
+            period_err: the uncertainty of the period value.
+            period_SDE: the SDE value associated with the detected period.
         '''
         # check global setting for mp
         multiprocessing = multiprocessing and self.multiprocessing
@@ -670,9 +706,24 @@ class photdata:
             return period,period_err,period_SDE
         return period,period_err
    
-    def _get_period_likelihood(self,period=None,period_err=None,p_min=0.1,p_max=4.0,N_peak=1000,N_noise=5000,Nsigma_range=5,return_SDE=False,repr_mode='likelihood',**kwargs):
-        '''
-        Calculates the period, uncertainty, and significance based on the given initial guesses.
+    def _get_period_likelihood(self,period=None,period_err=None,p_min=0.1,p_max=4.0,R_peak=1000,N_noise=5000,Nsigma_range=5,return_SDE=False,repr_mode='likelihood',**kwargs):
+        ''' Calculates the period, uncertainty, and significance based on the given initial guesses. This function requires an initial guess, which can be automatically obtained with the chi-square method when not specified. See our paper for detailed discussion.
+
+        Args:
+            period: initial guess for the period value.
+            period_err: initial guess for the uncertainty of the period value.
+            p_min: the minimum value of the period search range (passed to chi-square method).
+            p_max: the maximum value of the period search range (passed to chi-square method).
+            R_peak: the resolution of sampling at the peak. Default 1000.
+            N_noise: the number of samples for the bootstrapping to compute Z-value. Increasing this value makes the Z-value more reliable with an increased computing cost.
+            Nsigma_range: the size of periodogram sampling window with respect to the initial guess of the 1-sigma uncertainty (period_err).
+            return_SDE (bool): the option to return the SDE value.
+            repr_mode (str)['likelihood','lik','log-likelihood','loglik']: the representation of periodogram.
+
+        Returns:
+            period_mu: the best-fit period value based on a Gausian fit to (log-)likelihood periodogram.
+            period_sigma: the best-fit uncertainty value of period based on a Gaussian fit to (log-)likelihood periodogram.
+            Z: the statistical significance of the detected period.
         '''
         if period is None and period_err is None:
             if return_SDE:
@@ -689,7 +740,7 @@ class photdata:
         periods,lik = self.periodogram(
             p_min = period-period_err*Nsigma_range,
             p_max = period+period_err*Nsigma_range,
-            N=N_peak,
+            N=R_peak,
             repr_mode='loglik',
             raise_warnings=False,
             normalize=False,
@@ -704,7 +755,7 @@ class photdata:
             periods,lik = self.periodogram(
                 p_min = period_mu-period_sigma*Nsigma_range,
                 p_max = period_mu+period_sigma*Nsigma_range,
-                N=N_peak,
+                N=R_peak,
                 repr_mode='lik',
                 raise_warnings=False,
                 **kwargs
@@ -749,6 +800,19 @@ class photdata:
         return period_mu, period_sigma, Zscore
         
     def prewhiten(self,x=None,y=None,yerr=None,period=None,**kwargs):
+        """ performs a prewhitening based on the best-fit curve at the given data.
+
+        Args:
+            x: the time values.
+            y: the mag/flux values.
+            yerr: the unceertainties in the mag/flux values.
+            period: the phase-folding period.
+
+        Returns:
+            x: the time values. Same as the input or the class attribute (self.x).
+            y_new: the prewhitened mag/flux value.
+            yerr: the uncertainties in the prewhitened mag/flux value.
+        """
         x,y,yerr = self.prepare_data(x,y,yerr)
         if period is None:
             period = self.get_period(**kwargs)
@@ -762,11 +826,21 @@ class photdata:
         )
         return x,y-y_th,yerr
 
-    def get_period_multi(self,N,FAR_max=1e-3,model='Fourier',p0_func=None,**kwargs):
-        '''
-        multi-period detection. 
+    def get_period_multi(self,N,model='Fourier',p0_func=None,**kwargs):
+        ''' multi-period detection. 
+
         Re-detects P1 and then proceeds to P2, P3, ... PN.
-        Pn=None if FAR for nth period exceeds given thershold.
+
+        Args:
+            N: the number of periods to be detected.
+            model (str/obj): A name of the light curve model that's pre-implemented or a user-defined function.
+            p0_func (str/obj): A function that generates the initial guess values.
+
+        Returns:
+            periods: a list of detected periods.
+            period_errors: a list of uncertainties for periods.
+            z_vals: the Z-values for each period. Only returned when return_Z==True is passed.
+            amplitudes: a list of the amplitudes of the best-fit lightcurve at each period (evaluated at each prewhitening process).
         '''
         # TODO: implement Z-cut
 
@@ -824,11 +898,17 @@ class photdata:
             return periods,period_errors,z_vals,amplitudes
         return periods,period_errors,amplitudes
 
-    def amplitude_spectrum(self,p_min,p_max,N,model='Fourier',p0_func=None,grid=10000,plot=False,**kwargs):
-        '''
-        Returns the amplitude spectrum.
-        inputs: p_min, p_max, model, plot
-        returns: period, amplitude (and axis if plot==True)
+    def amplitude_spectrum(self,p_min,p_max,N,model='Fourier',p0_func=None,grid=10000,**kwargs):
+        ''' Returns the amplitude spectrum.
+
+        Args: 
+            p_min: the minimum of search range.
+            p_max: the maximum of search range.
+            model (str/obj): a name of the model function or a user-defined model function.
+
+        Returns: 
+            period_grid: a grid of period values.
+            spectrum: an array of amplitude spectrum values.
         '''
 
         periods,period_errors,amplitudes = self.get_period_multi(
@@ -850,13 +930,12 @@ class photdata:
         return period_grid, spectrum
 
     def classify(self):
+        ''' performs the classification of this object based on provided photometric data.
+        TODO: merge Nachiket's code
         '''
-        performs the classification of this object based on provided photometric data.
-        TODO: this is going to be a big function and requires a lot of work!
-        '''
-        # self.type = 'RRab'
         raise NotImplementedError
 
     def open_widget(self):
+        ''' a placeholder for the visualization module to be implemented. '''
         raise NotImplementedError('in development')
 
