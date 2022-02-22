@@ -177,7 +177,7 @@ class TestPhotdataIntegration(unittest.TestCase):
         """
         expected_per = 0.6968874975991536
         expected_err = 0.0065881527515392994
-        data = PIPS.data_readin_LPP('sample_data/005.dat',filter='V')
+        data = PIPS.data_readin_LPP('PIPS/resources/sample_RRL/005.dat',filter='V')
         x,y,yerr = data
         star = photdata(data)
         output_per, output_err = star.get_period(debug=True)
