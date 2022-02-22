@@ -23,7 +23,7 @@ jobs:
         
     - name: Install dependencies
       run: |
-        python setup.py install
+        pip install .
     - name: Test
       run: |
         python3 -m unittest discover
