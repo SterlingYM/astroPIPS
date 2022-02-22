@@ -1,1 +1,1 @@
-from .linalg import *
+from PIPS.periodogram.linalg import *
