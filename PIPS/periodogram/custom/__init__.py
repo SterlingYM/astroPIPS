@@ -1,1 +1,1 @@
-from .custom import *
+from PIPS.periodogram.custom import *
