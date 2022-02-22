@@ -2,7 +2,7 @@
 
 ![GitHub tag (latest SemVer pre-release)](https://img.shields.io/github/v/tag/SterlingYM/PIPS?include_prereleases)
 ![GitHub](https://img.shields.io/github/license/SterlingYM/PIPS)
-[![Build Status](https://dev.azure.com/PIPS-developers/PIPS/_apis/build/status/SterlingYM.PIPS?branchName=master)](https://dev.azure.com/PIPS-developers/PIPS/_build/latest?definitionId=1&branchName=master)
+[![Run tests](https://github.com/SterlingYM/astroPIPS/actions/workflows/run_tests.yml/badge.svg?branch=master)](https://github.com/SterlingYM/astroPIPS/actions/workflows/run_tests.yml)
 [![codecov](https://codecov.io/gh/SterlingYM/PIPS/branch/master/graph/badge.svg?token=R1W2S30XV2)](https://codecov.io/gh/SterlingYM/PIPS)
 [![Documentation Status](https://readthedocs.org/projects/pips/badge/?version=latest)](https://pips.readthedocs.io/en/latest/?badge=latest)
 
