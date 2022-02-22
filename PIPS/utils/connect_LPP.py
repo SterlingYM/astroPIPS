@@ -2,6 +2,13 @@ import numpy as np
 def data_readin_LPP(path,filter='V'):
     '''
     takes '.dat' file from LOSS Phot Pypeline (LPP) and returns data in PIPS.photdata()-readable format.
+    
+    Args:
+        path: (str) full path to file to be read in.
+        filter: (str, optional) filter of data to be read in from the file.
+        
+    Returns:
+        data: (list of np.array) time, y, and yerr read in from LPP file.
     '''
     # load info
     t,y,y_lower,y_upper = np.loadtxt(path,delimiter='\t',usecols=(0,2,3,4),skiprows=1,unpack=True)
