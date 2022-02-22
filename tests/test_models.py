@@ -15,7 +15,7 @@ class TestFourier(unittest.TestCase):
         x = np.linspace(0, 5, 400) # larger than 1 period by far
         Nterms = 0
         period = 1 # arbitrary
-        y = PIPS.periodogram.models.Fourier.fourier(x, period, Nterms, params, debug=True) #
+        y = PIPS.periodogram.custom.models.Fourier.fourier(x, period, Nterms, params, debug=True) #
         self.assertTrue(np.all(y==params[0]))
         
     def test_one_term(self):
@@ -26,7 +26,7 @@ class TestFourier(unittest.TestCase):
         x = np.linspace(0, 5, 400) # larger than 1 period by far
         Nterms = 1 # just a sine term
         period = 1 # arbitrary
-        y = PIPS.periodogram.models.Fourier.fourier(x, period, Nterms, params) #
+        y = PIPS.periodogram.custom.models.Fourier.fourier(x, period, Nterms, params) #
         test_y = np.cos(2 * np.pi * x + params[2]) + params[0]
         np.testing.assert_array_equal(y, test_y)
         
@@ -59,7 +59,7 @@ class TestGaussian(unittest.TestCase):
 
         Nterms = 1
 
-        y_fit = PIPS.periodogram.models.Gaussian.get_bestfit_gaussian(x,y,yerr,period,Nterms,return_yfit=True,return_params=False,
+        y_fit = PIPS.periodogram.custom.models.Gaussian.get_bestfit_gaussian(x,y,yerr,period,Nterms,return_yfit=True,return_params=False,
                                 debug=True)
         np.testing.assert_allclose(y, y_fit, atol=.8)
         
