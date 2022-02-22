@@ -9,6 +9,16 @@ def gaussian(x,period,params,Nterms=1,p=1):
     A Gaussian function (model) that calculates y-value 
     at each x-value for given period and parametrs.
     ** IMPORTANT NOTE: ```params``` has to be a numpy array (not python list)
+    
+    Args:
+        x: the time data.
+        period: the phase-folding period.
+        params: the Fourier parameters (coefficient and the phase).
+        Nterms: the number of terms in the series.
+        p: the exponent ('power') in the super-Gaussian model.
+        
+    Returns:
+        y: the model mag/flux value based on the x,period, and params.
     '''
     # if debug:
     #     print('*Gaussian: starting Gaussian')
@@ -32,6 +42,18 @@ def gaussian(x,period,params,Nterms=1,p=1):
     return y
 
 def gaussian_p0(x,y,yerr,period,Nterms=1,**kwargs):
+    """ Prepares the initial guesses.
+    
+    Args:
+        x: time data.
+        y: mag/flux data.
+        yerr: uncertainty in the mag/flux data.
+        period: the phase-folding period.
+        Nterms: the number of terms.
+        
+    Returns:
+        p0: the initial guesses.
+    """
     return [np.mean(y),*np.full(Nterms,1),*np.full(Nterms,period/2),*np.full(Nterms,period/4)]
 
 def get_bestfit_gaussian(x,y,yerr,period,Nterms,return_yfit=True,return_params=False,debug=False):
@@ -42,6 +64,21 @@ def get_bestfit_gaussian(x,y,yerr,period,Nterms,return_yfit=True,return_params=F
     if return_params==True, it returns best-fit parameters (model-dependent)
     NOTE: Gaussian parameters are not bound to keep the code fast.
     For stellar parameter calculation purpose, use tools in StellarModels class.
+    
+    
+    Args:
+        x: time data.
+        y: mag/flux data.
+        yerr: uncertainty in the mag/flux data.
+        period: the phase-folding period.
+        Nterms: the number of terms.
+        return_yfit(bool): an option to return the best-fit y-value.
+        return_params(bool): an option to return the best-fit parameters.
+        debug (bool): an option to print out progress and internal values.
+        
+    Returns:
+        y_fit: the best-fit y-value.
+        popt: the best-fit parameters.
     '''
     if debug:
         print('*get_bestfit_gaussian: starting process get_bestfit_gaussian(): ')
