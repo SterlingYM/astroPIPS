@@ -5,3 +5,4 @@ astropy
 numba
 nbsphinx
 emcee
+pandas
