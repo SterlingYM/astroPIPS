@@ -11,4 +11,6 @@ class visualize:
         plot_amplitude_spectrum(df)
         plot_OC(df)
     '''
-    raise NotImplementedError
+    
+    def __init__(self):
+        raise NotImplementedError
