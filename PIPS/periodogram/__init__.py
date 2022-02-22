@@ -5,7 +5,26 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 class Periodogram:
+    """ An object that generates and plots the periodogram.
+    
+    Attributes:
+        photdata (PIPS.photdata): the photdata object that contains the photometric data to construct periodograms.
+        periods (numpy array): a list of period values at which the periodogram is evaluated.
+        power (numpy array): a list of periodogram values.
+        kwargs (dict): arguments to be passed to specific methods of periodograms.
+        mode (str): the periodogram mode. Internal flagging purpose only.
+    """
+    
     def __init__(self,photdata=None,periods=None,power=None,kwargs=None,mode='regular'):
+        """ Initializes the periodogram object.
+        
+        Args:
+            photdata (PIPS.photdata): the photdata object that contains the photometric data to construct periodograms.
+            periods (numpy array): a list of period values at which the periodogram is evaluated.
+            power (numpy array): a list of periodogram values.
+            kwargs (dict): arguments to be passed to specific methods of periodograms.
+            mode (str): the periodogram mode. Internal flagging purpose only.
+        """
         self.photdata = photdata
         self.periods = periods
         self.power = power
@@ -14,6 +33,11 @@ class Periodogram:
         self.current = 0
 
     def __call__(self,**kwargs):
+        """ Evaluates the periodogram.
+        
+        Returns:
+            self (PIPS.periodogram): the periodogram object with updated periodogram values.
+        """
         periods,power = self._periodogram(**kwargs)
         self.periods = periods
         self.power = power
@@ -36,11 +60,28 @@ class Periodogram:
             raise StopIteration
 
     def _periodogram(self,p_min=0.1,p_max=4,custom_periods=None,N=None,
-            method='fast',x=None,y=None,yerr=None,plot=False,
-            multiprocessing=True,N0=5,model='Fourier',
+            method='fast',x=None,y=None,yerr=None,
+            multiprocessing=False,N0=10,model='Fourier',
             raise_warnings=True,**kwargs):
-        '''
-        Generate periodogram. 
+        ''' Generates periodogram. 
+        
+        Args:
+            p_min (float): the minimum value of the period to evaluate.
+            p_max (float): the maximum value of the period to evaluate.
+            custom_periods (numpy array): a list of specific values of period at which the periodogram is evaluated. Using this overrides the default setting of equally-spaced grid of period values between p_min and p_max.
+            N (int): the number of samples for equally-spaced period grid between p_min and p_max.
+            method (str)['fast','custom']: switches between linear algebra (fast) and linear regression (custom) methods. Fast mode is only available for the Fourier model.
+            x: the time data.
+            y: the mag/flux data.
+            yerr: the uncertainties in mag/flux data.
+            multiprocessing: the option to use multiprocessing feature. False by default.
+            N0: the ratio between the grid size and the expected period width. See our paper for detail.
+            model (str/obj): the light curve model. It has to be the name of the pre-implemented methods or a user-implemented function in a specific format. See tutorial for detail.
+            raise_warnings (bool): setting this to True prints out a warning message when provided N is smaller than the recommended size.
+            
+        Returns:
+            periods: the period values at which the periodogram is evaluated.
+            power: the values of the periodogram.
         '''
         # call parent class data
         photdata = self.photdata
@@ -81,10 +122,26 @@ class Periodogram:
 
         METHOD_KWARGS = {
             'fast': {
-                'p_min':p_min,'p_max':p_max,'custom_periods':custom_periods,'N':N,'x':x,'y':y,'yerr':yerr,'multiprocessing':multiprocessing,'model':model
+                'p_min':p_min,
+                'p_max':p_max,
+                'custom_periods':custom_periods,
+                'N':N,
+                'x':x,
+                'y':y,
+                'yerr':yerr,
+                'multiprocessing':multiprocessing,
+                'model':model
                 },
             'custom':{
-                'p_min':p_min,'p_max':p_max,'custom_periods':custom_periods,'N':N,'x':x,'y':y,'yerr':yerr,'multiprocessing':multiprocessing,'model':model
+                'p_min':p_min,
+                'p_max':p_max,
+                'custom_periods':custom_periods,
+                'N':N,
+                'x':x,
+                'y':y,
+                'yerr':yerr,
+                'multiprocessing':multiprocessing,
+                'model':model
                 }
         }
         kwargs.update(METHOD_KWARGS[method])
@@ -100,6 +157,16 @@ class Periodogram:
         return periods,power
 
     def zoom(self,p_min=None,p_max=None,width_factor=2,**kwargs):
+        """ zooms into the peak.
+        
+        Args:
+            p_min: the minimum period of the new range.
+            p_max: the maximum period of the zoom range.
+            width_factor: the ratio between the width of the new range around the peak and the analytic, expected width of the peak. This is only used when p_min and p_max are not provided.
+            
+        Returns:
+            periodogram (PIPS.periodogram): the periodogram object with the new range of periodogram.
+        """
         kwargs = kwargs.update({'return_axis':True})
         period_at_max = self.periods[self.power==self.power.max()]
 
@@ -117,6 +184,14 @@ class Periodogram:
         return Periodogram(self.photdata,new_periods,new_power,self.kwargs,mode=self.mode)
 
     def refine(self,factor=10):
+        """ performs subsampling of periodogram to refine the quality.
+        
+        Args:
+            factor: the ratio between the old grid size and the new grid size.
+        
+        Returns:
+            periodogram (PIPS.periodogram): a periodogram object that contains refined periodogram.
+        """
         p_min = self.periods.min()
         p_max = self.periods.max()
         N = len(self.periods)
@@ -133,6 +208,17 @@ class Periodogram:
         return Periodogram(self.photdata,periods,power,self.kwargs,mode=self.mode)
 
     def plot(self,ax=None,return_axis=False,c='#454545',show_peak=False,**kwargs):
+        """ automatically plots the periodogram.
+        
+        Args:
+            ax (matplotlib.axis.Axes): the user-defined matplotlib axis.
+            return_axis (bool): the option to return matplotlib axis.
+            c (str): the color of periodogram. Follow the matplotlib syntax.
+            show_peak (bool): an option to plot a vertical line at the peak.
+            
+        Returns:
+            ax (matplotlib.axis.Axes): the matplotlib axis with the periodogram plotted.
+        """
         periods,power = self
 
         if ax==None:
@@ -166,10 +252,25 @@ class Periodogram:
             return ax
             
     def SR(self):
+        """ Evaluates the SR. See our paper for detail.
+        
+        Returns:
+            Periodogram (PIPS.periodogram): the periodogram that contains SR instead of the raw periodogram.
+        """
         SR = self.power / self.power.max()
         return Periodogram(self.photdata,self.periods,SR,self.kwargs,mode='SR')
 
     def SDE(self,peak_only=False):
+        """ Calculates SDE. See our paper for discussion.
+        
+        Args:
+            peak_only (bool): the option to return the peak SDE value only.
+        
+        Returns:
+            SDE (float): the SDE value at the peak. This is returned when peak_only==True.
+            periodogram (PIPS.periodogram): the periodogram object that contains SDE instead of the raw periodogram power.
+        
+        """
         periods, SR = self.SR()
         if peak_only:
             return  (1-SR.mean())/SR.std()

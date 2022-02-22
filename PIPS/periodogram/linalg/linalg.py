@@ -3,8 +3,26 @@ from scipy.optimize import curve_fit
 from multiprocessing import Pool
 
 def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom_periods=None,model='Fourier',repr_mode='chisq',normalize=True,**kwargs):
-    '''
-    linear algebra-based periodogram.
+    ''' Generates the periodogram based on linear algebra method.
+    
+    Args:
+        p_min: the minimum period of the periodogram grid.
+        p_max: the maximum period of the periodogram grid.
+        N: the number of samples in the grid.
+        x: the time data.
+        y: the mag/flux data.
+        yerr: the uncertainties in mag/flux data.
+        Nterms (int): the number of terms in Fourier/Gaussian models.
+        multiprocessing (bool): the option to use multiprocessing feature.
+        custom_periods: the user-defined period values at which the periodogram is evaluated.
+        model (str): the lightcurve model. It has to be the name of the pre-implemented method ('Fourier' or 'Gaussian').
+        repr_mode (str)['likelihood','lik','log-likelihood','loglik','chi-square','chisq']: the periodogram representation.
+        normalize (bool): an option to normalize the resulting periodogram.
+        
+    Returns:
+        periods: periods at which periodogram is evaluated.
+        power: periodogram values.
+    
     '''
     # avoid invalid log for Gaussian model
     if model=='Gaussian':
@@ -26,10 +44,16 @@ def periodogram_fast(p_min,p_max,N,x,y,yerr,Nterms=1,multiprocessing=True,custom
     # worker prep -- calculate power (= chi2ref-chi2)
     global calc_power
     def calc_power(period):
-        '''
-        find best-fit solution:
+        ''' find best-fit solution.
+        
         X*P = Y ==> XT*X*Q = XT*Y
         power(P) = yT*X*
+        
+        Args:
+            period (float): the phase-folding period.
+            
+        Returns:
+            power (numpy array): the periodogram value at given period.
         '''
 
         if model == 'Fourier':
