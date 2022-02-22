@@ -203,7 +203,7 @@ class TestPhotdataIntegration(unittest.TestCase):
                         
 
 class TestAmplitudeSpectrum(unittest.TestCase):
-    x = np.linspace(0, 100, 1000)
+    x = np.random.uniform(0, 100, 1000)
     y = np.sin(x/2)
     yerr = np.ones_like(y) * .01
     
