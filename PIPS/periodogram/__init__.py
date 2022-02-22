@@ -1,6 +1,6 @@
-from . import *
-from .linalg import periodogram_fast
-from .custom import periodogram_custom
+from PIPS.periodogram import *
+from PIPS.periodogram.linalg import periodogram_fast
+from PIPS.periodogram.custom import periodogram_custom
 import matplotlib.pyplot as plt
 import numpy as np
 
