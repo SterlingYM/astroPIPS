@@ -16,51 +16,29 @@ from ..periodogram.custom.models.Fourier import fourier, fourier_p0
 from ..periodogram.custom.models.Gaussian import gaussian, gaussian_p0
 
 class photdata:
-    '''
+    """
     An object that contains photometric data and analysis results.
     
-    variables:
-        x(float list): time data
-        y(float list): magnitude or flux data
-        yerr(float list): error or uncertainty in each y-data
+    Attributes:
+        x(float list): time data.
+        y(float list): magnitude or flux data.
+        yerr(float list): error or uncertainty in each y-data.
         period(float): detected period of the object. None by default.
-        period_err(float): estimated uncertainty in detected period
-        amplitude(float): peak-to-peak ydata range (not best-fit function)
-        amplitude_err(float): quadrature of yerr for y.max() and y.min()
-        label(str): label for the photdata object
+        period_err(float): estimated uncertainty in detected period.
+        amplitude(float): peak-to-peak ydata range (not best-fit function).
+        amplitude_err(float): quadrature of yerr for y.max() and y.min().
+        label(str): label for the photdata object.
+        band(str): name of the filter for the photometric data.
         epoch(float): time of maxima, estimated from the datapoint nearest to a maximum
-        meanmag: mean magnitude (assuming y-value is in mag)
-        p0,p1,p2,...,pN
-        A0,A1,A2,...,AN
-            
-    functions (data preparation):
-        __init__(self,data,label='')
-        
-    functions (utilities):
-        cut(self,xmin=None,xmax=None,ymin=None,ymax=None,yerr_min=None,yerr_max=None)
-        reset_cuts()
-        summary()
-        prepare_data()
-        get_bestfit_curve(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5,x_th=None)
-        get_bestfit_amplitude(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5)
-        get_meanmag(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5)
-
-    functions (data processing):
-        periodogram(self,p_min=0.1,p_max=4,custom_periods=None,N=None,method='fast',x=None,y=None,yerr=None,plot=False,multiprocessing=True,Nterms=5,N0=5,model='Fourier',raise_warnings=True,**kwargs)
-        get_period(self,p_min=0.1,p_max=4,x=None,y=None,yerr=None,Nterms=5,method='fast',model='Fourier',peaks_to_test=5,R_peak=500,debug=False,force_refine=False,default_err=1e-6,**kwargs)
-        get_period_multi(self,N,FAR_max=1e-3,model='Fourier',Nterms=5,**kwargs)
-        amplitude_spectrum(self,p_min,p_max,N,model='Fourier',grid=10000,plot=False,Nterms=5,**kwargs)
-        get_bestfit(N,model='Fourier',period=None,plot=True,return_curve=False,return_params=False)
-        classify(self)
-        open_widget(self)
-        plot_lc(self,period=None,invert_yaxis=True,**kwargs)
-    '''
+        meanmag(float): mean magnitude (assuming y-value is in mag)
+        multiprocessing(bool): toggles multiprocessing option.
+    """
     
     def __init__(self,data,label='',band=None):
-        '''
+        """
         Takes in a list or numpy array of time-series data
         e.g. ```[time,mag,mag_err]```
-        '''
+        """
         self.x = np.array(data[0])
         self.y = np.array(data[1])
         self.yerr = np.array(data[2])
@@ -123,10 +101,16 @@ class photdata:
     # utilities
     ##############
     def check_model(self, model, p0_func, **kwargs):
-        """
-        Checks that a given input model is available.
-        model : (str/obj) user-input model.
-        p0_func : (str/obj) dictionary containing model strings as keys and arbitrary functions as values.
+        """ Checks that a given input model is available.
+        
+        Args:
+            model (str/obj): user-input model.
+            p0_func (str/obj): dictionary containing model strings as keys and arbitrary functions as values.
+
+        Returns:
+            MODEL (obj): a lightcurve model function.
+            P0_FUNC (obj): a function that prepares the initial guess for MODEL.
+            KWARGS (dict): default kwargs for MODEL.
         """
         if isinstance(model, str):
             MODEL = MODELS[model]
@@ -152,7 +136,16 @@ class photdata:
         [i.e. cuts are always applied to the raw data]
         reset_cuts() function resets cuts.
         
-        returns nothing.
+        Args:
+            xmin: minimum time value allowed.
+            xmax: maximum time value allowed.
+            ymin: minimum magnitude (flux) value allowed. Note this is the numebrical minimum (i.e., maximum brightness in case of magnitude)
+            ymax: maximum magnitude (flux) value allowed. See the note above.
+            yerr_min: minimum error allowed in y-value (mag/flux) uncertainty.
+            yerr_max: maximum error allowed in y-value (mag/flux) uncertainty.
+
+        Returns:
+            None
         '''
         # first-time operation
         if not hasattr(self,'cut_xmin'):
@@ -205,9 +198,8 @@ class photdata:
         self.yerr = self._yerr_raw[condition]
         
     def reset_cuts(self):
-        '''
-        resets cuts applied by cut() function.
-        '''
+        """resets cuts applied by cut() function.
+        """
         if hasattr(self,'_x_raw'):
             self.cut_xmin = None
             self.cut_xmax = None
@@ -220,13 +212,23 @@ class photdata:
             self.yerr = self._yerr_raw
 
     def summary(self):
-        '''
-        prints out the summary.
-        TODO: Jupyter widget?
+        ''' prints out the summary. Future implementation. 
         '''
         return self.__str__()
 
     def prepare_data(self,x=None,y=None,yerr=None):
+        """ a helper function to prepare data for internal processing. Determines if given [x,y,yerr] is empty or not and automatically uses the values stored in self.
+
+        Args:
+            x: list or array of time values.
+            y: list or array of mag/flux values.
+            yerr: list or array of mag-err or flux-err values.
+
+        Returns:
+            x: list or array of time values.
+            y: list or array of mag/flux values.
+            yerr: list or array of mag-err or flux-err values.
+        """
         if (x is None) and (y is None) and (yerr is None):
             x = self.x
             y = self.y
@@ -236,9 +238,26 @@ class photdata:
         return x,y,yerr
 
     def get_bestfit_curve(self,x=None,y=None,yerr=None,period=None,model='Fourier',p0_func=None,x_th=None,return_params=False,return_param_err=False,use_original_x=False,**kwargs):
-        '''
-        Calculates the best-fit smooth curve.
-        '''
+        """Calculates the best-fit smooth curve.
+
+        Args:
+            x: list or array of time values.
+            y: list or array of mag/flux values.
+            yerr: list or array of mag-err or flux-err values.
+            period: the phase-folding period value at which the light curve is fitted to data.
+            model (str/obj): name of the pre-implemented functions or the user-implemented function that generates analytic light curves.
+            p0_func (obj): a function that prepares the initial guess values for given model.
+            x_th (numpy array): the time value in phase unit at which the artificial, best-fit light curve is fitted.
+            return_params (bool): option to return best-fit parameters for the model function.
+            return_param_err (bool): option to return the uncertainties of best-fit parameters for the model function.
+            use_original_x(bool): option to use the original time value instead of newly generated phase values.
+
+        Returns:
+            popt: best-fit parameters (only returned when return_params==True).
+            perr: uncertainties in best-fit parameters (only returned when return_param_err==True).
+            x_th: the artificially generated phase values at which the best-fit light curve is evaluated at.
+            y_th: the best-fit light curve values at x_th.
+        """
         # prepare data
         if model=='Fourier':
             if 'Nterms' in kwargs:
@@ -274,10 +293,20 @@ class photdata:
 
         return x_th,y_th
 
-    def get_chi2(self,x=None,y=None,yerr=None,period=None,model='Fourier',p0_func=None,x_th=None,**kwargs):
-        '''
-        Calculates the best-fit smooth curve.
-        '''
+    def get_chi2(self,x=None,y=None,yerr=None,period=None,model='Fourier',p0_func=None,**kwargs):
+        """Calculates the chi-squared values of the best-fit smooth curve at given phase-folding period.
+        
+        Args:
+            x: list or array of time values.
+            y: list or array of mag/flux values.
+            yerr: list or array of mag-err or flux-err values.
+            period: phase-folding period.
+            model (str/obj): name of the pre-implemented functions or the user-implemented function that generates analytic light curves.
+            p0_func (obj): a function that prepares the initial guess values for given model.
+
+        Returns:
+            chi2 (float): the value of chi-square value. Evaluated with the best-fit lightcurve model against the phase-folded data at provided period.
+        """
         # prepare data
         if model=='Fourier':
             if 'Nterms' in kwargs:
@@ -300,24 +329,59 @@ class photdata:
         return chi2
 
     def get_bestfit_amplitude(self,x=None,y=None,yerr=None,period=None,**kwargs):
-        '''
-        calculates the amplitude of best-fit curve.
-        '''
+        """ calculates the amplitude of best-fit curve.
+
+        Args:
+            x: list or array of time values.
+            y: list or array of mag/flux values.
+            yerr: list or array of mag-err or flux-err values.
+            period: the value of phase-folding period.
+
+        Return: the amplitude (peak-to-peak).
+        """
         _,y_th = self.get_bestfit_curve(x=x,y=y,yerr=yerr,period=period,**kwargs)
         return np.max(y_th)-np.min(y_th)
 
     def get_meanmag(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5,**kwargs):
-        '''
-        calculates an estimated mean magnitude from best-fit curve.
+        ''' calculates an estimated mean magnitude from best-fit curve.
+        
         This method requires a reliable fitting, but is more robust against incomplete sampling in pulsation phase
+
+        Args:
+            x: list or array of time values.
+            y: list or array of mag/flux values.
+            yerr: list or array of mag-err or flux-err values.
+            period: phase-folding period.
+            model (str/obj): name of the pre-implemented functions or the user-implemented function that generates analytic light curves.
+            Nterms (int): number of terms (only applicable to pre-implemented models).
+
+        Returns:
+            meanmag: the mean value of the y-values in the best-fit lightcurve.             
         '''
         _,y_th = self.get_bestfit_curve(x,y,yerr,period,model,Nterms,**kwargs)
         return np.mean(y_th)
 
     def get_SR(self,power):
+        """ calculates the SR value (see Murakami et al. 2022) for SDE calculation.
+
+        Args:
+            power (float or numpy array): the "power" value calculated for SDE.
+
+        Returns:
+            SR (float or np array): the SR value(s).
+        """
         return power / power.max()
 
     def get_SDE(self,power,peak_only=False):
+        """ Calculates the value of SDE (see Murakami et al. 2022).
+
+        Args:
+            power: the value of periodogram power.
+            peak_only (bool): options to evaluate around the peak only.
+
+        Returns:
+            SDE: the value of Signal Detection Efficiency (SDE).
+        """
         SR = self.get_SR(power)
         if peak_only:
             return (1-SR.mean())/SR.std()
@@ -325,9 +389,26 @@ class photdata:
             return (SR-SR.mean())/SR.std()
 
     def plot_lc(self,period=None,invert_yaxis=True,figsize=(8,4),ax=None,return_axis=False,title=None,plot_bestfit=False,plot_epoch=False,offset_epoch=False,model_color='yellowgreen',model_kwargs={},ylabel='mag',epoch_type='min',**kwargs):
-        '''
-        plots phase-folded light curve.
-        '''
+        """ Automatically plots the phase-folded data, best-fit lightcurve, and the phase of maximum.
+
+        Args:
+            period (float): the phase-folding period.
+            invert_yaxis (bool): the option to invert y-axis. True by default assuming y-value represents the magnitude.
+            figsize (tuple): the figure size prepared by matplotlib. (8,4) by default.
+            ax (matplotlib.axis.Axes): the optional matplotlib Axes object prepared by user.
+            return_axis (bool): the option to return matplotlib.axis.Axes object.
+            title (str): the title of the plot to be printed.
+            plot_bestfit (bool): the option to plot the best-fit analytic light curve model.
+            plot_epoch (bool): the option to plot the phase of maximum.
+            offset_epoch (bool): the option to offset the plot in x-direction so that phase=0 corresponds to the maximum.
+            model_color (str): the color of the best-fit lightcurve plotted.
+            model_kwargs (dict): the kwargs to be passed to the lightcurve model.
+            ylabel (str): the label printed along the y-axis.
+            epoch_type (str): select between ['min','max'] ('min' by default for maximum brightness in mag scale) to define the location of "epoch".
+        
+        Returns:
+            ax (matplotlib.axes.Axes): the axis object.
+        """
         if period is None:
             if self.period is None:
                 raise ValueError('folding period needs to be specified')
@@ -378,10 +459,19 @@ class photdata:
             return ax
  
     def get_epoch_offset(self,period=None,x=None,y=None,yerr=None,model_kwargs={},N=1000,type='min',**kwargs):
-        '''
-        TODO: define the 'maxima': is it the minimum in magnitude or maximum in any value? current implementation -> 'magnitude' interpretation only
-        inputs:
+        ''' calculates the phase of epoch (often defined as time of maxima).
+
+        Args:
+            period: the phase-folding period at which the lightcurve is analyzed.
+            x: the time values.
+            y: the mag/flux values.
+            yerr: the errors in mag/flux values.
+            model_kwargs (dict): the arguments passed to the lightcurve model function.
             N: number of samples across the phase (single period). The peak should have width W >> P/1000.
+            type (str)['min','max']: the definion of "epoch". Default is 'min' assuming the maximum brightness in magnitude scale.
+
+        Returns:
+            epoch_offset: the phase of maxima in the raw data. For instance, epoch_offset=0.2 suggests that the time of maxima are x that satisfies x%period=0.2 .
         '''
         # use default values if data is not explicitly given
         x,y,yerr = self.prepare_data(x,y,yerr)
