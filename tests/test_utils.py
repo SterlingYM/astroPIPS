@@ -10,7 +10,7 @@ class TestLPP(unittest.TestCase):
         Regression test against previously read-in 
         LPP data.
         """
-        data = PIPS.data_readin_LPP('sample_data/005.dat',filter='V')
+        data = PIPS.data_readin_LPP('PIPS/resources/sample_RRL/005.dat',filter='V')
         x,y,yerr = data
         
         # read in the previous data
@@ -23,7 +23,7 @@ class TestLPP(unittest.TestCase):
         Regression test against previously read-in 
         LPP data.
         """
-        data = PIPS.data_readin_LPP('sample_data/005.dat',filter='V')
+        data = PIPS.data_readin_LPP('PIPS/resources/sample_RRL/005.dat',filter='V')
         x,y,yerr = data
         
         # read in the previous data
@@ -36,7 +36,7 @@ class TestLPP(unittest.TestCase):
         Regression test against previously read-in 
         LPP data.
         """
-        data = PIPS.data_readin_LPP('sample_data/005.dat',filter='V')
+        data = PIPS.data_readin_LPP('PIPS/resources/sample_RRL/005.dat',filter='V')
         x,y,yerr = data
         
         # read in the previous data

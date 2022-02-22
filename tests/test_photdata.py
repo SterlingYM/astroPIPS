@@ -177,7 +177,7 @@ class TestPhotdataIntegration(unittest.TestCase):
         """
         expected_per = 0.6968874975991536
         expected_err = 0.0065881527515392994
-        data = PIPS.data_readin_LPP('sample_data/005.dat',filter='V')
+        data = PIPS.data_readin_LPP('PIPS/resources/sample_RRL/005.dat',filter='V')
         x,y,yerr = data
         star = photdata(data)
         output_per, output_err = star.get_period(debug=True)
@@ -203,7 +203,7 @@ class TestPhotdataIntegration(unittest.TestCase):
                         
 
 class TestAmplitudeSpectrum(unittest.TestCase):
-    x = np.linspace(0, 100, 1000)
+    x = np.random.uniform(0, 100, 1000)
     y = np.sin(x/2)
     yerr = np.ones_like(y) * .01
     
