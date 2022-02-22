@@ -8,12 +8,12 @@ import warnings
 warnings.simplefilter("ignore", OptimizeWarning)
 import copy
 
-from ..periodogram import Periodogram
-from ..periodogram.custom import periodogram_custom, get_bestfit, check_MODEL_KWARGS, MODELS, P0_FUNCS
-from ..periodogram.custom import get_chi2 as _get_chi2
-from ..periodogram.linalg import periodogram_fast
-from ..periodogram.custom.models.Fourier import fourier, fourier_p0
-from ..periodogram.custom.models.Gaussian import gaussian, gaussian_p0
+from PIPS.periodogram import Periodogram
+from PIPS.periodogram.custom import periodogram_custom, get_bestfit, check_MODEL_KWARGS, MODELS, P0_FUNCS
+from PIPS.periodogram.custom import get_chi2 as _get_chi2
+from PIPS.periodogram.linalg import periodogram_fast
+from PIPS.periodogram.custom.models.Fourier import fourier, fourier_p0
+from PIPS.periodogram.custom.models.Gaussian import gaussian, gaussian_p0
 
 class photdata:
     """
