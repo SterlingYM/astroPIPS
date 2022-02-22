@@ -22,6 +22,9 @@ While period estimation is the primary function of PIPS, other tools are availab
    data_manip
    stellar_parameters
    
-.. automodule:: PIPS.class_photdata
-    :members:
+.. toctree::
+   :maxdepth: 2
+   :caption: Documentation
+
+   PIPS_docstring
 
