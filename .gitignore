@@ -5,7 +5,7 @@
 *.vscode
 *.code-workspace
 *.VS*
-# test.ipynb
+test.ipynb
 
 # mkdocs documentation
 /site
