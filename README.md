@@ -12,7 +12,7 @@ A detailed description of PIPS and its algorithms is provided in [our paper](htt
 
 __NOTE: We are currently updating the documentation to match the content with the paper__
 
-(last edit: August 8th, 2021) 
+(last edit: February 24th, 2021) 
 
 ![](sample_lightcurve.png)
 
