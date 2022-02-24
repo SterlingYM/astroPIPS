@@ -49,7 +49,7 @@ def fourier_p0(x,y,yerr,period,Nterms,**kwargs):
     Returns:
         p0: the initial guesses.
     """
-        return [np.mean(y),*np.zeros(2*Nterms)]
+    return [np.mean(y),*np.zeros(2*Nterms)]
 
 def get_bestfit_Fourier(x,y,yerr,period,Nterms,return_yfit=True,return_params=False,
                         debug=False):
