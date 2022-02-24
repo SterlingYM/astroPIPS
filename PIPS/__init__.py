@@ -17,7 +17,7 @@ Classes:
     
 Change log:
 12.21.21 Disabled multiprocessing by default
-
+02.22.21 Added docstrings
 '''
 import matplotlib.pyplot as pyplot
 import numpy as np
@@ -37,8 +37,8 @@ __author__ = "Y. Murakami, A. Savel, J. Sunseri, A. Hoffman, Ivan Altunin, Nachi
 __maintainer__ = "Y. Murakami"
 __email__ = "sterling.astro@berkeley.edu"
 __license__ = "MIT"
-__version__ = "0.3.0-beta.2"
-__release__ = "0.3.0-beta.2"
+__version__ = "0.3-beta.3"
+__release__ = "0.3-beta.3"
 __description__ = "Processes photometric data for variable stars"
 
 def about():

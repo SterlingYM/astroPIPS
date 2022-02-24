@@ -13,7 +13,7 @@ NAME = "astroPIPS"
 PACKAGES = find_packages(where=".")
 META_PATH = os.path.join("PIPS", "__init__.py")
 CLASSIFIERS = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Natural Language :: English",
