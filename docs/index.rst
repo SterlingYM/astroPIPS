@@ -26,5 +26,5 @@ While period estimation is the primary function of PIPS, other tools are availab
    :maxdepth: 2
    :caption: Documentation
 
-   PIPS_docstring
+   sources/modules
 
