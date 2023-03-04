@@ -342,7 +342,8 @@ class photdata:
         _,y_th = self.get_bestfit_curve(x=x,y=y,yerr=yerr,period=period,**kwargs)
         return np.max(y_th)-np.min(y_th)
 
-    def get_meanmag(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5,**kwargs):
+    # def get_meanmag(self,x=None,y=None,yerr=None,period=None,model='Fourier',Nterms=5,**kwargs):
+    def get_meanmag(self,x=None,y=None,yerr=None,period=None,**kwargs):
         ''' calculates an estimated mean magnitude from best-fit curve.
         
         This method requires a reliable fitting, but is more robust against incomplete sampling in pulsation phase
@@ -358,7 +359,7 @@ class photdata:
         Returns:
             meanmag: the mean value of the y-values in the best-fit lightcurve.             
         '''
-        _,y_th = self.get_bestfit_curve(x,y,yerr,period,model,Nterms,**kwargs)
+        _,y_th = self.get_bestfit_curve(x,y,yerr,period,**kwargs)
         return np.mean(y_th)
 
     def get_SR(self,power):
@@ -388,7 +389,7 @@ class photdata:
         else:
             return (SR-SR.mean())/SR.std()
 
-    def plot_lc(self,period=None,invert_yaxis=True,figsize=(8,4),ax=None,return_axis=False,title=None,plot_bestfit=False,plot_epoch=False,offset_epoch=False,model_color='yellowgreen',model_kwargs={},ylabel='mag',epoch_type='min',**kwargs):
+    def plot_lc(self,period=None,invert_yaxis=True,figsize=(8,4),ax=None,return_axis=False,return_fig=False,title=None,plot_bestfit=False,plot_epoch=False,offset_epoch=False,model_color='yellowgreen',model_kwargs={},ylabel='mag',epoch_type='min',**kwargs):
         """ Automatically plots the phase-folded data, best-fit lightcurve, and the phase of maximum.
 
         Args:
@@ -427,6 +428,7 @@ class photdata:
         # plot
         if ax==None:
             fig, ax = plt.subplots(1,1,figsize=figsize)
+            fig.set_facecolor('w')
         if 'color' not in kwargs.keys():
             kwargs['color'] = 'k'
         if 'fmt' not in kwargs.keys():
@@ -453,10 +455,15 @@ class photdata:
             ax.invert_yaxis()
         if plot_bestfit:
             x_th,y_th = self.get_bestfit_curve(x=x,y=y,yerr=yerr,period=period,**model_kwargs)
-            plt.plot(x_th/period,y_th,lw=3,c=model_color)
-            plt.plot(x_th/period+1,y_th,lw=3,c=model_color)
-        if return_axis:
+            ax.plot(x_th/period,y_th,lw=3,c=model_color)
+            ax.plot(x_th/period+1,y_th,lw=3,c=model_color)
+
+        if return_fig and not return_axis:
+            return fig
+        elif return_axis and not return_fig:
             return ax
+        elif return_axis and return_fig:
+            return fig, ax
  
     def get_epoch_offset(self,period=None,x=None,y=None,yerr=None,model_kwargs={},N=1000,type='min',**kwargs):
         ''' calculates the phase of epoch (often defined as time of maxima).
@@ -746,7 +753,7 @@ class photdata:
             normalize=False,
             **kwargs
             )
-        popt,_ = curve_fit(log_Gaussian,periods,lik,p0=[period,period_err,lik.max()],bounds=[[0,0,-np.inf],[np.inf,np.inf,np.inf]])
+        popt,_ = curve_fit(log_Gaussian,periods,lik,p0=[period,period_err,lik.max()],bounds=[[p_min,0,-np.inf],[p_max,np.inf,np.inf]])
         signal_log = lik.max()
         period_mu,period_sigma,_ = popt
 

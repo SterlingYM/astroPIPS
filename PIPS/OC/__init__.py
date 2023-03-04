@@ -57,7 +57,12 @@ class longdata:
             self.x_means.append(star.x.mean())
         self.all_data = all_data
 
-    def run_OC(self,p_ref=None,template_idx=None,method='fast',model='Fourier',p0_func=None,round_mode='round',**kwargs):
+    def run_OC(self,
+                p_ref = None, p_ref_err = None,
+                template_idx = None, 
+                method = 'fast', model = 'Fourier',
+                p0_func = None, round_mode = 'round',
+                **kwargs):
         """ Calculates the O-C values for given data.
         
         Args: 
@@ -75,17 +80,25 @@ class longdata:
         self.prep_alldata()
 
         # prepare 'mean' curve
-        if template_idx==None:
+        if template_idx is None:
             print('template is not specified: using the first photdata as template')
             template_idx = 0
-        template_period,_ = self.data[template_idx].get_period(**kwargs)
-        model_popt = self.data[template_idx].get_bestfit_curve(period=template_period,return_params=True,model='Fourier',p0_func=None,**kwargs)
+        template_star = self.data[template_idx]
+        if p_ref is None:
+            p_ref,p_ref_err = template_star.get_period(**kwargs)
+            print(p_ref,p_ref_err)
+        model_popt = template_star.get_bestfit_curve(
+            period=p_ref,
+            return_params=True,
+            model='Fourier',
+            p0_func=None,
+            **kwargs)
         self.model_popt = model_popt
 
-        # prepare 'mean' period
-        if p_ref == None:
-            print('p_ref not given: using the template period as p_ref')
-            p_ref = template_period
+        # # prepare 'mean' period
+        # if p_ref is None:
+        #     print('p_ref not given: using the template period as p_ref')
+        #     p_ref = template_period
             
         # select models
         if method=='fast':
@@ -97,7 +110,7 @@ class longdata:
 
         # get O-C by fitting offsets
         for star in self.data:
-            if star.period == None:
+            if star.period is None:
                 try:
                     star.get_period(**kwargs)
                 except Exception:
@@ -105,10 +118,13 @@ class longdata:
 
             if round_mode=='round':
                 bounds = ([-p_ref/2,-np.inf],[p_ref/2,np.inf])
+                p0 = [0,0]
             elif round_mode=='floor':
                 bounds = ([0,-np.inf],[p_ref,np.inf])
+                p0 = [p_ref/2,0]
             elif round_mode=='ceil':
                 bounds = ([-p_ref,-np.inf],[0,np.inf])
+                p0 = [-p_ref/2,0]
             else:
                 raise ValueError(f'incorrect round_mode: {round_mode} not in '+'{\'round\',\'floor\',\'ceil\'}')
             popt,pcov = curve_fit(
@@ -116,13 +132,23 @@ class longdata:
                 star.x,
                 star.y,
                 sigma=star.yerr,
+                p0=p0,
                 bounds=bounds
             )
+
+            # statistical error
+            OC_err_stat = np.sqrt(np.diag(pcov))[0]
+
+            # estimate the systematic error due to the choice of p_ref
+            baseline = star.x.mean() - template_star.x.mean() 
+            OC_err_syst = p_ref_err * baseline / p_ref
+
             self.periods.append(star.period)
             self.oc.append(popt[0])
-            self.oc_err.append(np.sqrt(np.diag(pcov))[0])
+            self.oc_err.append(np.sqrt(OC_err_stat**2 + OC_err_syst**2))
             self.y_offsets.append(popt[1])
         self.p_ref = p_ref
+        self.p_ref_err = p_ref_err
         return self
 
     def plot_oc(self,ax=None,figsize=(8,5),return_axis=False,**kwargs):
